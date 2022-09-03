@@ -1,0 +1,41 @@
+1) insert a 32x32 pixel png file named "input.png" into this folder
+
+color codes:
+    space - 255, 255, 255
+    block - 0, 0, 0
+    spawn - 0, 255, 0
+    lava - 255, 0, 0
+    escape - 0, 0, 255
+    elevator - 255, 0, 255
+    circuit - 255, 128, 255
+    switch - 255, 128 + x, 128
+    door - 128, 60 + x, 60 + y
+    hotrock - 128, 0, 0
+    turret - 255, 1, z(0-60-128)firerate
+    light - 192, 192, 192
+    vortex - N/A
+
+    (replace x with ID, y with code of tile behind door, z with special attribute)
+    (format (minval, defval, maxval))
+
+tile codes:
+    space - 0
+    block - 1
+    spawn - 2
+    lava - 3
+    escape - 4
+    elevator - 5
+    circuit - 6
+    switch - 7
+    door - 8
+    hotrock - 9
+    turret - 10
+    light - 11
+    vortex = 12
+
+multiple spawns are not supported
+switches behind doors are not supported
+
+2) run "converter.py"
+
+3) level data will be outputted in the console
