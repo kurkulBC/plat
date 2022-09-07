@@ -41,8 +41,8 @@ while run:
             ident = data[1] - 128
             savedpixels.append([7, ident])
         if data[0] == 128 and 60 <= data[1] < 128 and 60 <= data[2] < 128:
-            ident = (data[1] - 60) * 10
-            code = data[1] - 60
+            ident = data[1] - 60
+            code = data[2] - 60
             savedpixels.append([8, ident, code])
         if data == (128, 0, 0):
             savedpixels.append(9)
@@ -51,6 +51,8 @@ while run:
             savedpixels.append([10, firerate])
         if data == (192, 192, 192):
             savedpixels.append(11)
+        if data[0] == 100 and data[1] == 100 and 100 <= data[2] <= 103:
+            savedpixels.append([13, ])
     if newline:
         newline = False
         posx = 0

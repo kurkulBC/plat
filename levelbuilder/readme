@@ -9,13 +9,14 @@ color codes:
     elevator - 255, 0, 255
     circuit - 255, 128, 255
     switch - 255, 128 + x, 128
-    door - 128, 60 + x, 60 + y
+    door - 128, 60 + x, 60 + y(locked tile)
     hotrock - 128, 0, 0
     turret - 255, 1, z(0-60-128)firerate
     light - 192, 192, 192
     vortex - N/A
+    piston - 100, 100, 100 + z(0-0-3)rotation
 
-    (replace x with ID, y with code of tile behind door, z with special attribute)
+    (replace x with ID, y and z with special attribute)
     (format (minval, defval, maxval))
 
 tile codes:
@@ -31,7 +32,8 @@ tile codes:
     hotrock - 9
     turret - 10
     light - 11
-    vortex = 12
+    vortex - 12
+    piston - 13
 
 multiple spawns are not supported
 switches behind doors are not supported

@@ -58,6 +58,8 @@ bullets = pygame.sprite.Group()
 lighttiles = pygame.sprite.Group()
 lightingtiles = pygame.sprite.Group()
 vortextiles = pygame.sprite.Group()
+pistontiles = pygame.sprite.Group()
+pistonrodtiles = pygame.sprite.Group()
 
 # create special groups
 sprites = pygame.sprite.Group()
@@ -635,7 +637,7 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 # tile types
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, img, x=0, y=0, convert_alpha=False):
+    def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0):
         super().__init__()
         self.x = x
         self.y = y
@@ -644,6 +646,8 @@ class Tile(pygame.sprite.Sprite):
             self.mask = pygame.mask.from_surface(self.image)
         else:
             self.image = pygame.image.load(img)
+        if rotate != 0:
+            self.image = pygame.transform.rotate(self.image, rotate * 90)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
 
@@ -1035,6 +1039,44 @@ class Vortex(Tile):
                 self.image = pygame.image.load(image)
 
 
+class Piston(Tile):
+    def __init__(self, x, y, ident, rotation=0):
+        super().__init__("assets/img/piston.png", x, y, rotate=rotation)
+        self.ident = ident
+
+    def update(self):
+        if not plat.alive:
+            self.kill()
+
+        if power(self.image, self.rect):
+            pistonrodtiles.update(self.ident)
+
+
+class PistonRod(Tile):
+    def __init__(self, x, y, ident, rotation=0):
+        super().__init__("assets/img/pistonrod.png", x, y, rotate=rotation)
+        self.ident = ident
+        self.rotation = rotation
+
+    def update(self, ident=-1):
+        if not plat.alive:
+            self.kill()
+
+        if self.ident == ident:
+            if self.rotation == 0:
+                if self.rect.x != self.x:
+                    self.kill()
+            if self.rotation == 1:
+                if self.rect.y != self.y:
+                    self.kill()
+            if self.rotation == 2:
+                if self.rect.x != self.x:
+                    self.kill()
+            if self.rotation == 3:
+                if self.rect.y != self.y:
+                    self.kill()
+
+
 # refresh every frame
 def redrawgamewindow():
     for sprite in sprites:
@@ -1099,6 +1141,8 @@ while run:
         rocktiles.empty()
         turrettiles.empty()
         bullets.empty()
+        pistontiles.empty()
+        pistonrodtiles.empty()
 
         stealth = False
         lighttiles.empty()
@@ -1191,6 +1235,13 @@ while run:
                         #     prevortextiles.append([levelx, levely, "assets/img/circuit.png"])
                         # if tile[1] == 6:
                         #     prevortextiles.append([levelx, levely, "assets/img/elevator.png"])
+                    if tile[0] == 13:
+                        if len(tile) == 4:
+                            pistontiles.add(Piston(levelx, levely, tile[1], tile[2]))
+                            pistonrodtiles.add(PistonRod(levelx, levely, tile[1], tile[2]))
+                        else:
+                            pistontiles.add(Piston(levelx, levely, tile[1]))
+                            pistonrodtiles.add(PistonRod(levelx, levely, tile[1]))
 
                 levelx += 1 * size
             levelx = 0
@@ -1204,13 +1255,13 @@ while run:
             stealth = True
 
         sprites.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, circuittiles, rocktiles, turrettiles,
-                    lighttiles)
-        sprites2.add(elevtiles, switchtiles, doortiles, bullets)
+                    lighttiles, pistontiles)
+        sprites2.add(elevtiles, switchtiles, doortiles, bullets, pistonrodtiles)
         collidetiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles)
         elevcollidetiles.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, switchtiles, doortiles, rocktiles,
-                             turrettiles, lighttiles)
+                             turrettiles, lighttiles, pistontiles, pistonrodtiles)
         bulletcollidetiles.add(blocktiles, spawn, lavatiles, esctiles, elevtiles, doortiles, rocktiles, turrettiles,
-                               lighttiles)
+                               lighttiles, pistontiles, pistonrodtiles)
         solidtiles.add(bulletcollidetiles, bullets)
 
         plat.die("respawn", "game")
@@ -1246,6 +1297,7 @@ while run:
     elevtiles.update()
     switchtiles.update()
     turrettiles.update()
+    pistontiles.update()
     bullets.update()
     lighttiles.update()
     plat.move()
