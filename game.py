@@ -8,7 +8,7 @@ import assets.hax as hax
 from enum import Enum, unique, auto
 import random
 from glitch_this import ImageGlitcher
-import math
+from math import floor, ceil
 import timeit
 
 invisiblespawn = False
@@ -62,12 +62,16 @@ pistontiles = pygame.sprite.Group()
 pistonrodtiles = pygame.sprite.Group()
 
 # create special groups
+spritesbg = pygame.sprite.Group()
 sprites = pygame.sprite.Group()
 sprites2 = pygame.sprite.Group()
+projectiles = pygame.sprite.Group()
+
 collidetiles = pygame.sprite.Group()
 elevcollidetiles = pygame.sprite.Group()
 bulletcollidetiles = pygame.sprite.Group()
 solidtiles = pygame.sprite.Group()
+tiles = pygame.sprite.Group()
 
 # load sound
 ost = pygame.mixer.music
@@ -126,7 +130,6 @@ class Player(pygame.sprite.Sprite):
         self.buffering = False
         self.wasgrounded = 0
         self.mask = pygame.mask.from_surface(self.image)
-        self.killtimer = 1
 
     # calculates gravity
     def gravitycalc(self):
@@ -199,6 +202,10 @@ class Player(pygame.sprite.Sprite):
                 self.momentum -= self.acceleration
         if -1 < self.momentum < 0 or 0 < self.momentum < 1:
             self.momentum = 0
+        if self.momentum >= 0:
+            floor(self.momentum)
+        else:
+            ceil(self.momentum)
 
     def moveleft(self):
         if not hax.active or not hax.noclip:
@@ -246,15 +253,7 @@ class Player(pygame.sprite.Sprite):
         # acceleration:vel ratio = 1:8
         # gravity:jumpheight:tvel ratio = 1:20:30
 
-        # change motion values correspondingly to achieve different levels of "controlled speed" and "jump power"
-
-        if not self.alive:
-            if self.killtimer > 0:
-                self.killtimer -= 1
-            else:
-                self.alive = True
-                self.killtimer = 1
-
+        # change motion values correspondingly
         keys = pygame.key.get_pressed()
         self.gravitycalc()
         self.moving = False
@@ -376,12 +375,12 @@ class Player(pygame.sprite.Sprite):
                                                                random.randint(-5, 5)], gravity=0, mass=15,
                                     decay=0.75, color=(190, 195, 199))
 
+            self.alive = False
+            tiles.update()
+            projectiles.update()
             self.rect.x = spawn.x + size / 4
             self.rect.y = spawn.y + size / 2
-            self.alive = False
-
-            sprites.update()
-            sprites2.update()
+            self.alive = True
 
 
 # particle system
@@ -635,7 +634,31 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
     shakedecay = [xshakedecay, yshakedecay]
 
 
-# tile types
+# push things around
+def push(direction, *entities):
+    nextcollide = []
+    for entity in entities:
+        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity])
+        collided = pygame.sprite.spritecollide(entity, tempgroup, False)
+        nextcollide.append(*collided)
+        if collided:
+            if direction == Direction.up:
+                for collision in collided:
+                    collision.rect.bottom = entity.rect.top
+            if direction == Direction.left:
+                for collision in collided:
+                    collision.rect.right = entity.rect.left
+            if direction == Direction.down:
+                for collision in collided:
+                    collision.rect.top = entity.rect.bottom
+            if direction == Direction.left:
+                for collision in collided:
+                    collision.rect.left = entity.rect.right
+    if nextcollide:
+        push(direction, *nextcollide)
+
+
+# tile parent classes
 class Tile(pygame.sprite.Sprite):
     def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0):
         super().__init__()
@@ -672,6 +695,7 @@ class TempObj(pygame.sprite.Sprite):
             self.kill()
 
 
+# tile types
 class Space(Tile):
     def __init__(self, x, y):
         super().__init__("assets/img/space.png", x, y)
@@ -873,20 +897,15 @@ class Door(Tile):
 
     def update(self, ident=-1):
         if not plat.alive:
-            sprites2.add(self)
-            collidetiles.add(self)
-            elevcollidetiles.add(self)
-            bulletcollidetiles.add(self)
+            self.add(sprites2, collidetiles, elevcollidetiles, bulletcollidetiles)
+
         else:
             if self.ident == ident:
                 if sprites2.has(self):
                     self.kill()
-                    self.add(doortiles)
+                    self.add(doortiles, tiles)
                 else:
-                    sprites2.add(self)
-                    collidetiles.add(self)
-                    elevcollidetiles.add(self)
-                    bulletcollidetiles.add(self)
+                    self.add(sprites2, collidetiles, elevcollidetiles, bulletcollidetiles)
 
 
 class Rock(Tile):
@@ -921,17 +940,17 @@ class Turret(Tile):
                     power(self.image, self.rect)
 
                     if Direction.up in powered:
-                        bullets.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1] + size / 4,
-                                           Direction.down))
+                        projectiles.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1] + size / 4,
+                                               Direction.down))
                     if Direction.left in powered:
-                        bullets.add(Bullet(self.rect.midright[0] + size / 4, self.rect.midright[1] - size / 8,
-                                           Direction.right))
+                        projectiles.add(Bullet(self.rect.midright[0] + size / 4, self.rect.midright[1] - size / 8,
+                                               Direction.right))
                     if Direction.down in powered:
-                        bullets.add(Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
-                                           Direction.up))
+                        projectiles.add(Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
+                                               Direction.up))
                     if Direction.right in powered:
-                        bullets.add(Bullet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8,
-                                           Direction.left))
+                        projectiles.add(Bullet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8,
+                                               Direction.left))
                     self.cooldown = self.firerate
                     if not mute:
                         shoot.play()
@@ -988,7 +1007,7 @@ class Light(Tile):
 
 class Lighting(Tile):
     def __init__(self, x, y, rotation=0, angle=75.0, offset=16, inverse=False, filler=False):
-        super().__init__("assets/img/stealth/lighting.png")
+        super().__init__("assets/img/stealth/lighting.png", x, y)
         self.rotation = rotation
         self.angle = angle
         self.offset = offset
@@ -1049,23 +1068,40 @@ class Piston(Tile):
             self.kill()
 
         if power(self.image, self.rect):
+            pistonrodtiles.update(self.ident, True)
+        else:
             pistonrodtiles.update(self.ident)
 
 
 class PistonRod(Tile):
-    def __init__(self, x, y, ident, rotation=0):
+    def __init__(self, x, y, ident, rotation=0, speed=2):
         super().__init__("assets/img/pistonrod.png", x, y, rotate=rotation)
         self.ident = ident
         self.rotation = rotation
+        self.speed = speed
+        self.active = False
 
-    def update(self, ident=-1):
+    def update(self, ident=-1, active=False):
         if not plat.alive:
             self.kill()
 
+        if active:
+            self.active = True
         if self.ident == ident:
             if self.rotation == 0:
                 if self.rect.x != self.x:
                     self.kill()
+                if self.active:
+                    if abs(self.rect.y - self.y) + self.speed <= 32:
+                        self.rect.y -= self.speed
+                        collided = pygame.sprite.spritecollide(self, solidtiles, False)
+                        if collided:
+                            for entity in collided:
+                                entity.rect.y += self.speed
+                            # args = (entity for entity in collided)
+                            push(Direction.up, *collided)
+                    if abs(self.rect.y - self.y) + self.speed > 32:
+                        self.rect.y = self.x - 32
             if self.rotation == 1:
                 if self.rect.y != self.y:
                     self.kill()
@@ -1079,11 +1115,13 @@ class PistonRod(Tile):
 
 # refresh every frame
 def redrawgamewindow():
+    for sprite in spritesbg:
+        win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     for sprite in sprites:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     for sprite in sprites2:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
-    for sprite in bullets:
+    for sprite in projectiles:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     if particlesys.particles or particlesys.heldparticles:
         particlesys.run("square")
@@ -1131,7 +1169,7 @@ while run:
         # clears old tile data
         spacetiles.empty()
         blocktiles.empty()
-        spawn = Spawn(-10, -10)
+        spawn = None
         lavatiles.empty()
         esctiles.empty()
         elevtiles.empty()
@@ -1148,31 +1186,39 @@ while run:
         lighttiles.empty()
         lightingtiles.empty()
 
+        spritesbg.empty()
         sprites.empty()
         sprites2.empty()
+        projectiles.empty()
         collidetiles.empty()
         elevcollidetiles.empty()
         bulletcollidetiles.empty()
         solidtiles.empty()
+        tiles.empty()
 
         # loads level data
         for strip in currentlvl:
             for tile in strip:
+                bgloaded = False
                 if tile == 0:
                     spacetiles.add(Space(levelx, levely))
+                    bgloaded = True
                 if tile == 1:
                     blocktiles.add(Block(levelx, levely))
                 if tile == 2:
                     spawn = Spawn(levelx, levely)
                 if tile == 3:
                     lavatiles.add(Lava(levelx, levely))
+                    bgloaded = True
                 if tile == 4:
                     esctiles.add(Esc(levelx, levely))
                 if tile == 5:
                     circuittiles.add(Circuit(levelx, levely))
+                    bgloaded = True
                     elevtiles.add(Elev(levelx, levely))
                 if tile == 6:
                     circuittiles.add(Circuit(levelx, levely))
+                    bgloaded = True
                 if tile == 9:
                     rocktiles.add(Rock(levelx, levely))
                 if tile == 11:
@@ -1180,24 +1226,30 @@ while run:
                 if type(tile) == list:
                     if tile[0] == 5:
                         circuittiles.add(Circuit(levelx, levely))
+                        bgloaded = True
                         elevtiles.add(Elev(levelx, levely, tile[1]))
                     if tile[0] == 7:
                         spacetiles.add(Space(levelx, levely))
+                        bgloaded = True
                         switchtiles.add(Switch(levelx, levely, tile[1]))
                     if tile[0] == 8:
                         if tile[2] == 0:
                             spacetiles.add(Space(levelx, levely))
+                            bgloaded = True
                         if tile[2] == 1:
                             blocktiles.add(Block(levelx, levely))
                         if tile[2] == 3:
                             lavatiles.add(Lava(levelx, levely))
+                            bgloaded = True
                         if tile[2] == 4:
                             esctiles.add(Esc(levelx, levely))
                         if tile[2] == 5:
                             circuittiles.add(Circuit(levelx, levely))
+                            bgloaded = True
                             elevtiles.add(Elev(levelx, levely))
                         if tile[2] == 6:
                             circuittiles.add(Circuit(levelx, levely))
+                            bgloaded = True
                         if tile[2] == 9:
                             rocktiles.add(Rock(levelx, levely))
                         if tile[2] == 10:
@@ -1243,26 +1295,31 @@ while run:
                             pistontiles.add(Piston(levelx, levely, tile[1]))
                             pistonrodtiles.add(PistonRod(levelx, levely, tile[1]))
 
+                if not bgloaded:
+                    spacetiles.add(Space(levelx, levely))
+
                 levelx += 1 * size
             levelx = 0
             levely += 1 * size
         levely = 0
 
-        if spawn == Spawn(-10, -10):
+        if spawn is None:
             print("Error: No spawn found")
             run = False
         if len(lighttiles) > 0:
             stealth = True
 
-        sprites.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, circuittiles, rocktiles, turrettiles,
-                    lighttiles, pistontiles)
-        sprites2.add(elevtiles, switchtiles, doortiles, bullets, pistonrodtiles)
+        spritesbg.add(spacetiles, lavatiles, circuittiles)
+        sprites.add(blocktiles, spawn, esctiles, rocktiles, turrettiles, lighttiles, pistontiles)
+        sprites2.add(elevtiles, switchtiles, doortiles, pistonrodtiles)
+        projectiles.add(bullets)
         collidetiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles)
         elevcollidetiles.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, switchtiles, doortiles, rocktiles,
                              turrettiles, lighttiles, pistontiles, pistonrodtiles)
         bulletcollidetiles.add(blocktiles, spawn, lavatiles, esctiles, elevtiles, doortiles, rocktiles, turrettiles,
                                lighttiles, pistontiles, pistonrodtiles)
         solidtiles.add(bulletcollidetiles, bullets)
+        tiles.add(spritesbg, sprites, sprites2)
 
         plat.die("respawn", "game")
 
@@ -1298,7 +1355,7 @@ while run:
     switchtiles.update()
     turrettiles.update()
     pistontiles.update()
-    bullets.update()
+    projectiles.update()
     lighttiles.update()
     plat.move()
 
