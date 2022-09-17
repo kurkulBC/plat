@@ -52,7 +52,7 @@ while run:
         if data == (192, 192, 192):
             savedpixels.append(11)
         if data[0] == 100 and data[1] == 100 and 100 <= data[2] <= 103:
-            savedpixels.append([13, ])
+            savedpixels.append([13, data[2] - 100])
     if newline:
         newline = False
         posx = 0

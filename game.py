@@ -27,6 +27,7 @@ shakeintensity = [0, 0]
 shakedecay = [0, 0]
 screenrotation = 0
 mute = False
+framerate = 60
 
 screen = pygame.display.set_mode((screenwidth, screenheight), pygame.FULLSCREEN | pygame.SCALED)
 win = pygame.Surface((screenwidth, screenheight))
@@ -107,6 +108,7 @@ class Player(pygame.sprite.Sprite):
         self.acceleration = 0
         self.vel = 10
         self.turnrate = 1.5
+        self.transportmomentum = 0
         self.moving = False
         self.alive = True
         self.vertforce = 0
@@ -333,6 +335,10 @@ class Player(pygame.sprite.Sprite):
             elif self.vertforce > 0:
                 self.rect.top = tile1.rect.bottom
                 self.vertforce = 0
+            elif self.transportmomentum < 0:
+                self.rect.left = tile1.rect.right
+            elif self.transportmomentum > 0:
+                self.rect.right = tile1.rect.left
         if self.rect.bottom > height:
             self.rect.bottom = height
             self.vertforce = 0
@@ -340,6 +346,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
             self.vertforce = 0
 
+        self.transportmomentum = 0
         collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
         if len(collidedtiles) > 0:
             if not hax.active or not hax.noclip:
@@ -635,12 +642,13 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 
 # push things around
-def push(direction, *entities):
+def push(direction, *instigators):
     nextcollide = []
-    for entity in entities:
+    for entity in instigators:
         tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity])
         collided = pygame.sprite.spritecollide(entity, tempgroup, False)
-        nextcollide.append(*collided)
+        for collision in collided:
+            nextcollide.append(collision)
         if collided:
             if direction == Direction.up:
                 for collision in collided:
@@ -666,11 +674,19 @@ class Tile(pygame.sprite.Sprite):
         self.y = y
         if convert_alpha:
             self.image = pygame.image.load(img).convert_alpha()
-            self.mask = pygame.mask.from_surface(self.image)
         else:
             self.image = pygame.image.load(img)
-        if rotate != 0:
-            self.image = pygame.transform.rotate(self.image, rotate * 90)
+        self.image = pygame.transform.rotate(self.image, rotate * 90)
+
+        if rotate == 0:
+            self.direction = Direction.up
+        if rotate == 1:
+            self.direction = Direction.left
+        if rotate == 2:
+            self.direction = Direction.down
+        if rotate == 3:
+            self.direction = Direction.right
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
 
@@ -787,6 +803,7 @@ class Elev(Tile):
                                 plat.rect.y -= abs(self.rect.top - upcanmove[0].rect.bottom)
                     else:
                         self.direction = Direction.left
+
                 if self.direction == Direction.left:
                     if (len(leftcanmove) == 0 or leftcanmove[0].rect.right != self.rect.left) and \
                             len(leftcollidedtiles) > 0:
@@ -797,12 +814,14 @@ class Elev(Tile):
                             self.direction = Direction.down
 
                         if charcollide or pygame.sprite.collide_rect(self, plat):
+                            plat.transportmomentum = -self.speed
                             if len(leftcanmove) == 0:
                                 plat.rect.x -= self.speed
                             else:
                                 plat.rect.x -= abs(self.rect.left - leftcanmove[0].rect.right)
                     else:
                         self.direction = Direction.down
+
                 if self.direction == Direction.down:
                     if (len(downcanmove) == 0 or downcanmove[0].rect.top != self.rect.bottom) \
                             and len(downcollidedtiles) > 0:
@@ -838,6 +857,7 @@ class Elev(Tile):
                                     plat.rect.y += abs(self.rect.top - downcanmove[0].rect.top)
                     else:
                         self.direction = Direction.right
+
                 if self.direction == Direction.right:
                     if (len(rightcanmove) == 0 or rightcanmove[0].rect.left != self.rect.right) \
                             and len(rightcollidedtiles) > 0:
@@ -848,6 +868,7 @@ class Elev(Tile):
                             self.direction = Direction.up
 
                         if charcollide or pygame.sprite.collide_rect(self, plat):
+                            plat.transportmomentum = self.speed
                             if len(rightcanmove) == 0:
                                 plat.rect.x += self.speed
                             else:
@@ -1060,57 +1081,115 @@ class Vortex(Tile):
 
 class Piston(Tile):
     def __init__(self, x, y, ident, rotation=0):
-        super().__init__("assets/img/piston.png", x, y, rotate=rotation)
+        super().__init__("assets/img/piston.png", x, y, convert_alpha=True, rotate=rotation)
         self.ident = ident
+        self.rotation = rotation
+        self.set = False
 
     def update(self):
         if not plat.alive:
-            self.kill()
+            self.rect.x, self.rect.y = self.x, self.y
 
-        if power(self.image, self.rect):
-            pistonrodtiles.update(self.ident, True)
+        if not self.set:
+            entity = PistonRod(self.rect.x, self.rect.y, self.ident, self, self.rotation)
+            entity.add(pistonrodtiles, sprites, elevcollidetiles, bulletcollidetiles, solidtiles, collidetiles, tiles)
+            self.set = True
+
+        if self.rect.x != self.x or self.rect.y != self.y:
+            if power(self.image, self.rect):
+                pistonrodtiles.update(self.ident, True, self.rect.x, self.rect.y)
+            else:
+                pistonrodtiles.update(self.ident, self.rect.x, self.rect.y)
         else:
-            pistonrodtiles.update(self.ident)
+            if power(self.image, self.rect):
+                pistonrodtiles.update(self.ident, True)
+            else:
+                pistonrodtiles.update(self.ident)
+        # print(self.rect)
 
 
 class PistonRod(Tile):
-    def __init__(self, x, y, ident, rotation=0, speed=2):
-        super().__init__("assets/img/pistonrod.png", x, y, rotate=rotation)
+    def __init__(self, x, y, ident, host, rotation=0, speed=2):
+        super().__init__("assets/img/pistonrod.png", x, y, convert_alpha=True, rotate=rotation)
         self.ident = ident
+        self.host = host
         self.rotation = rotation
+        self.distance = 0
         self.speed = speed
         self.active = False
 
     def update(self, ident=-1, active=False):
         if not plat.alive:
-            self.kill()
+            self.rect.x, self.rect.y = self.x, self.y
+
+        if self.host.rect.x - self.rect.x != 0 or self.host.rect.y - self.rect.y != 0:
+            self.rect = self.host.rect
 
         if active:
-            self.active = True
+            if self.rect == self.host.rect:
+                self.active = True
+        else:
+            self.active = False
+
         if self.ident == ident:
-            if self.rotation == 0:
-                if self.rect.x != self.x:
-                    self.kill()
-                if self.active:
-                    if abs(self.rect.y - self.y) + self.speed <= 32:
+            if self.rotation % 2 == 0:
+                if self.host.rect.x - self.rect.x != 0 or abs(self.host.rect.y - self.rect.y) != self.distance:
+                    self.rect.x = self.host.rect.x
+                    self.rect.y += self.host.rect.y - self.rect.y
+            else:
+                if self.host.rect.y - self.rect.y != 0 or abs(self.host.rect.x - self.rect.x) != self.distance:
+                    self.rect.y = self.host.rect.y
+                    self.rect.x += self.host.rect.x - self.rect.x
+            # one collision for self, one collision for host piston, one collision for the obstructive tile
+            if len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
+                self.kill()
+
+            if self.active:
+                if self.direction == Direction.up:
+                    if abs(self.host.rect.y - self.rect.y) + self.speed <= 32:
+                        self.distance += self.speed
+                    else:
+                        self.distance = self.host.rect.y - 32
+                    self.rect.y = self.host.rect.y - self.distance
+                if self.direction == Direction.left:
+                    if abs(self.host.rect.x - self.rect.x) + self.speed <= 32:
+                        self.rect.x -= self.speed
+                    else:
+                        self.rect.x = self.host.rect.x - 32
+                if self.direction == Direction.down:
+                    if abs(self.host.rect.y - self.rect.y) + self.speed <= 32:
+                        self.rect.y += self.speed
+                    else:
+                        self.rect.y = self.host.rect.y + 32
+                if self.direction == Direction.right:
+                    if abs(self.host.rect.x - self.rect.x) + self.speed <= 32:
+                        self.rect.x += self.speed
+                    else:
+                        self.rect.x = self.host.rect.x + 32
+
+                if pygame.sprite.spritecollide(self, solidtiles, False):
+                    push(self.direction, self)
+            else:
+                if self.direction == Direction.up:
+                    if abs(self.host.rect.y - self.rect.y) - self.speed >= 0:
+                        self.rect.y += self.speed
+                    else:
+                        self.rect.y = self.host.rect.y
+                if self.direction == Direction.left:
+                    if abs(self.host.rect.x - self.rect.x) - self.speed >= 0:
+                        self.rect.x += self.speed
+                    else:
+                        self.rect.x = self.host.rect.x
+                if self.direction == Direction.down:
+                    if abs(self.host.rect.y - self.rect.y) - self.speed >= 0:
                         self.rect.y -= self.speed
-                        collided = pygame.sprite.spritecollide(self, solidtiles, False)
-                        if collided:
-                            for entity in collided:
-                                entity.rect.y += self.speed
-                            # args = (entity for entity in collided)
-                            push(Direction.up, *collided)
-                    if abs(self.rect.y - self.y) + self.speed > 32:
-                        self.rect.y = self.x - 32
-            if self.rotation == 1:
-                if self.rect.y != self.y:
-                    self.kill()
-            if self.rotation == 2:
-                if self.rect.x != self.x:
-                    self.kill()
-            if self.rotation == 3:
-                if self.rect.y != self.y:
-                    self.kill()
+                    else:
+                        self.rect.y = self.host.rect.y
+                if self.direction == Direction.right:
+                    if abs(self.host.rect.x - self.rect.x) - self.speed >= 0:
+                        self.rect.x -= self.speed
+                    else:
+                        self.host.rect.x = self.rect.x
 
 
 # refresh every frame
@@ -1147,7 +1226,7 @@ leveltext = font1.render("???", False, colors.WHITE)
 run = True
 while run:
     start_time = timeit.default_timer()
-    clock.tick(60)
+    clock.tick(framerate)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -1288,12 +1367,7 @@ while run:
                         # if tile[1] == 6:
                         #     prevortextiles.append([levelx, levely, "assets/img/elevator.png"])
                     if tile[0] == 13:
-                        if len(tile) == 4:
-                            pistontiles.add(Piston(levelx, levely, tile[1], tile[2]))
-                            pistonrodtiles.add(PistonRod(levelx, levely, tile[1], tile[2]))
-                        else:
-                            pistontiles.add(Piston(levelx, levely, tile[1]))
-                            pistonrodtiles.add(PistonRod(levelx, levely, tile[1]))
+                        pistontiles.add(Piston(levelx, levely, tile[1]))
 
                 if not bgloaded:
                     spacetiles.add(Space(levelx, levely))
@@ -1310,15 +1384,15 @@ while run:
             stealth = True
 
         spritesbg.add(spacetiles, lavatiles, circuittiles)
-        sprites.add(blocktiles, spawn, esctiles, rocktiles, turrettiles, lighttiles, pistontiles)
-        sprites2.add(elevtiles, switchtiles, doortiles, pistonrodtiles)
+        sprites.add(blocktiles, spawn, esctiles, rocktiles, turrettiles, lighttiles, pistonrodtiles)
+        sprites2.add(elevtiles, switchtiles, doortiles, pistontiles)
         projectiles.add(bullets)
-        collidetiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles)
         elevcollidetiles.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, switchtiles, doortiles, rocktiles,
                              turrettiles, lighttiles, pistontiles, pistonrodtiles)
-        bulletcollidetiles.add(blocktiles, spawn, lavatiles, esctiles, elevtiles, doortiles, rocktiles, turrettiles,
-                               lighttiles, pistontiles, pistonrodtiles)
+        bulletcollidetiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles, pistontiles,
+                               pistonrodtiles)
         solidtiles.add(bulletcollidetiles, bullets)
+        collidetiles.add(solidtiles)
         tiles.add(spritesbg, sprites, sprites2)
 
         plat.die("respawn", "game")
