@@ -274,7 +274,6 @@ class Player(pygame.sprite.Sprite):
             if keys[pygame.K_p] and hax.active and hax.canfly:
                 self.rect.y -= hax.flyspeed
             if keys[pygame.K_o]:
-                # jesse what the fuck is this
                 for i in range(100):
                     if 25 < i <= 75:
                         x = -1
@@ -1091,15 +1090,15 @@ class Piston(Tile):
             self.rect.x, self.rect.y = self.x, self.y
 
         if not self.set:
-            entity = PistonRod(self.rect.x, self.rect.y, self.ident, self, self.rotation)
+            entity = PistonRod(self.rect.x, self.rect.y, self.ident, [self.rect.x, self.rect.y], self.rotation)
             entity.add(pistonrodtiles, sprites, elevcollidetiles, bulletcollidetiles, solidtiles, collidetiles, tiles)
             self.set = True
 
         if self.rect.x != self.x or self.rect.y != self.y:
             if power(self.image, self.rect):
-                pistonrodtiles.update(self.ident, True, self.rect.x, self.rect.y)
+                pistonrodtiles.update(self.ident, True, [self.rect.x, self.rect.y])
             else:
-                pistonrodtiles.update(self.ident, self.rect.x, self.rect.y)
+                pistonrodtiles.update(self.ident, hostchange=[self.rect])
         else:
             if power(self.image, self.rect):
                 pistonrodtiles.update(self.ident, True)
@@ -1109,87 +1108,93 @@ class Piston(Tile):
 
 
 class PistonRod(Tile):
-    def __init__(self, x, y, ident, host, rotation=0, speed=2):
+    def __init__(self, x, y, ident, hostrect, rotation=0, speed=2):
         super().__init__("assets/img/pistonrod.png", x, y, convert_alpha=True, rotate=rotation)
         self.ident = ident
-        self.host = host
+        self.hostrect = hostrect
         self.rotation = rotation
         self.distance = 0
         self.speed = speed
         self.active = False
 
-    def update(self, ident=-1, active=False):
+    def update(self, ident=-1, active=False, hostchange=None):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
 
-        if self.host.rect.x - self.rect.x != 0 or self.host.rect.y - self.rect.y != 0:
-            self.rect = self.host.rect
+        if hostchange:
+            self.hostrect = hostchange
+
+        if self.hostrect[0] - self.rect.x != 0 or self.hostrect[1] - self.rect.y != 0:
+            self.rect = self.hostrect
 
         if active:
-            if self.rect == self.host.rect:
+            if self.rect == self.hostrect:
                 self.active = True
-        else:
+        elif self.distance == 32:
             self.active = False
 
         if self.ident == ident:
             if self.rotation % 2 == 0:
-                if self.host.rect.x - self.rect.x != 0 or abs(self.host.rect.y - self.rect.y) != self.distance:
-                    self.rect.x = self.host.rect.x
-                    self.rect.y += self.host.rect.y - self.rect.y
+                if self.hostrect[0] - self.rect.x != 0 or abs(self.hostrect[1] - self.rect.y) != self.distance:
+                    self.rect.x = self.hostrect[0]
+                    self.rect.y += self.hostrect[1] - self.rect.y
             else:
-                if self.host.rect.y - self.rect.y != 0 or abs(self.host.rect.x - self.rect.x) != self.distance:
-                    self.rect.y = self.host.rect.y
-                    self.rect.x += self.host.rect.x - self.rect.x
+                if self.hostrect[1] - self.rect.y != 0 or abs(self.hostrect[0] - self.rect.x) != self.distance:
+                    self.rect.y = self.hostrect[1]
+                    self.rect.x += self.hostrect[0] - self.rect.x
             # one collision for self, one collision for host piston, one collision for the obstructive tile
             if len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
                 self.kill()
 
             if self.active:
                 if self.direction == Direction.up:
-                    if abs(self.host.rect.y - self.rect.y) + self.speed <= 32:
+                    if abs(self.hostrect[1] - self.rect.y) + self.speed <= 32:
                         self.distance += self.speed
                     else:
-                        self.distance = self.host.rect.y - 32
-                    self.rect.y = self.host.rect.y - self.distance
+                        self.distance = self.hostrect[1] - 32
+                    self.rect.y = self.hostrect[1] - self.distance
                 if self.direction == Direction.left:
-                    if abs(self.host.rect.x - self.rect.x) + self.speed <= 32:
-                        self.rect.x -= self.speed
+                    if abs(self.hostrect[0] - self.rect.x) + self.speed <= 32:
+                        self.distance -= self.speed
                     else:
-                        self.rect.x = self.host.rect.x - 32
+                        self.distance = self.hostrect[0] - 32
+                    self.rect.x = self.hostrect[0] - self.distance
                 if self.direction == Direction.down:
-                    if abs(self.host.rect.y - self.rect.y) + self.speed <= 32:
-                        self.rect.y += self.speed
+                    if abs(self.hostrect[1] - self.rect.y) + self.speed <= 32:
+                        self.distance += self.speed
                     else:
-                        self.rect.y = self.host.rect.y + 32
+                        self.distance = self.hostrect[1] + 32
+                    self.rect.y = self.hostrect[1] + self.distance
                 if self.direction == Direction.right:
-                    if abs(self.host.rect.x - self.rect.x) + self.speed <= 32:
-                        self.rect.x += self.speed
+                    if abs(self.hostrect[0] - self.rect.x) + self.speed <= 32:
+                        self.distance += self.speed
                     else:
-                        self.rect.x = self.host.rect.x + 32
+                        self.distance = self.hostrect[1] + 32
+                    self.rect.x = self.hostrect[0] + self.distance
 
                 if pygame.sprite.spritecollide(self, solidtiles, False):
                     push(self.direction, self)
             else:
                 if self.direction == Direction.up:
-                    if abs(self.host.rect.y - self.rect.y) - self.speed >= 0:
+                    if abs(self.hostrect[1] - self.rect.y) - self.speed >= 0:
                         self.rect.y += self.speed
                     else:
-                        self.rect.y = self.host.rect.y
+                        self.rect.y = self.hostrect[1]
                 if self.direction == Direction.left:
-                    if abs(self.host.rect.x - self.rect.x) - self.speed >= 0:
+                    if abs(self.hostrect[0] - self.rect.x) - self.speed >= 0:
                         self.rect.x += self.speed
                     else:
-                        self.rect.x = self.host.rect.x
+                        self.rect.x = self.hostrect[0]
                 if self.direction == Direction.down:
-                    if abs(self.host.rect.y - self.rect.y) - self.speed >= 0:
+                    if abs(self.hostrect[1] - self.rect.y) - self.speed >= 0:
                         self.rect.y -= self.speed
                     else:
-                        self.rect.y = self.host.rect.y
+                        self.rect.y = self.hostrect[1]
                 if self.direction == Direction.right:
-                    if abs(self.host.rect.x - self.rect.x) - self.speed >= 0:
+                    if abs(self.hostrect[0] - self.rect.x) - self.speed >= 0:
                         self.rect.x -= self.speed
                     else:
-                        self.host.rect.x = self.rect.x
+                        self.hostrect[0] = self.rect.x
 
 
 # refresh every frame
