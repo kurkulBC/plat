@@ -91,7 +91,6 @@ else:
     levelcount = 2
 size = 32
 currentlvl = [0]
-powered = []
 lights = pygame.surface.Surface((1024, 1024))
 stealth = False
 
@@ -470,17 +469,16 @@ class Direction(Enum):
 
 # dummy class for power()
 class Demo(pygame.sprite.Sprite):
-    def __init__(self, image, rect):
+    def __init__(self, rect):
         super().__init__()
-        self.image = image
         self.rect = rect
 
 
 # surrounding check for a tile's connection to power
-def power(image, rect):
-    powered.clear()
+def power(rect) -> list[Direction]:
+    powered = []
 
-    tempsprite = Demo(image, rect)
+    tempsprite = Demo(rect)
 
     tempsprite.rect.y -= 1
     uppower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
@@ -502,22 +500,16 @@ def power(image, rect):
     rightblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
     tempsprite.rect.x -= 1
 
-    ispowered = False
-
     if len(uppower) > len(upblock):
         powered.append(Direction.up)
-        ispowered = True
     if len(leftpower) > len(leftblock):
         powered.append(Direction.left)
-        ispowered = True
     if len(downpower) > len(downblock):
         powered.append(Direction.down)
-        ispowered = True
     if len(rightpower) > len(rightblock):
         powered.append(Direction.right)
-        ispowered = True
 
-    return ispowered
+    return powered
 
 
 # image glitching
@@ -641,10 +633,10 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 
 # push things around
-def push(direction, *instigators):
+def push(direction, saferect=None, *instigators):
     nextcollide = []
     for entity in instigators:
-        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity])
+        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect != saferect])
         collided = pygame.sprite.spritecollide(entity, tempgroup, False)
         for collision in collided:
             nextcollide.append(collision)
@@ -671,8 +663,10 @@ class Tile(pygame.sprite.Sprite):
         super().__init__()
         self.x = x
         self.y = y
+        self.mask = None
         if convert_alpha:
             self.image = pygame.image.load(img).convert_alpha()
+            self.mask = pygame.mask.from_surface(self.image)
         else:
             self.image = pygame.image.load(img)
         self.image = pygame.transform.rotate(self.image, rotate * 90)
@@ -685,7 +679,6 @@ class Tile(pygame.sprite.Sprite):
             self.direction = Direction.down
         if rotate == 3:
             self.direction = Direction.right
-        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
 
@@ -742,7 +735,7 @@ class Esc(Tile):
 class Elev(Tile):
     def __init__(self, x, y, speed=2):
         super().__init__("assets/img/elevator.png", x, y)
-        self.direction = 0
+        self.direction = Direction.up
         self.speed = speed
         self.lastcollide = 1
 
@@ -752,128 +745,126 @@ class Elev(Tile):
             self.direction = Direction.up
 
         else:
-            if power(self.image, self.rect):
-                pass
+            if power(self.rect):
+                return "powered"
+
+            if hax.active and hax.bumpyride:
+                charcollide = pygame.sprite.collide_rect(self, plat)
             else:
-                if hax.active and hax.bumpyride:
-                    charcollide = pygame.sprite.collide_rect(self, plat)
+                plat.rect.y += self.speed + 1
+                charcollide = pygame.sprite.collide_rect(self, plat)
+                plat.rect.y -= self.speed + 1
+
+            upcanmove = leftcanmove = downcanmove = rightcanmove = False
+            uptiles = lefttiles = downtiles = righttiles = None
+
+            self.rect.y -= self.speed
+            if pygame.sprite.spritecollide(self, circuittiles, False) and not \
+                    (uptiles := pygame.sprite.spritecollide(self, elevcollidetiles, False)):
+                upcanmove = True
+            self.rect.y += self.speed
+
+            self.rect.x -= self.speed
+            if pygame.sprite.spritecollide(self, circuittiles, False) and not \
+                    (lefttiles := pygame.sprite.spritecollide(self, elevcollidetiles, False)):
+                leftcanmove = True
+            self.rect.x += self.speed
+
+            self.rect.y += self.speed
+            if pygame.sprite.spritecollide(self, circuittiles, False) and not \
+                    (downtiles := pygame.sprite.spritecollide(self, elevcollidetiles, False)):
+                downcanmove = True
+            self.rect.y -= self.speed
+
+            self.rect.x += self.speed
+            if pygame.sprite.spritecollide(self, circuittiles, False) and not \
+                    (righttiles := pygame.sprite.spritecollide(self, elevcollidetiles, False)):
+                rightcanmove = True
+            self.rect.x -= self.speed
+
+            # jumping right next to an elevator makes you fly (feature?)
+            # but only when you jump on the left side while the elevator moves left
+            # keeping bc funy
+            if self.direction == Direction.up:
+                if upcanmove:
+                    self.rect.y -= self.speed
+                elif uptiles and uptiles[0].rect.bottom != self.rect.top:
+                    self.rect.top = uptiles[0].rect.bottom
+                    self.direction = Direction.left
                 else:
-                    plat.rect.y += self.speed + 1
-                    charcollide = pygame.sprite.collide_rect(self, plat)
-                    plat.rect.y -= self.speed + 1
+                    self.direction = Direction.left
 
-                self.rect.y -= self.speed
-                upcollidedtiles = pygame.sprite.spritecollide(self, circuittiles, False)
-                upcanmove = pygame.sprite.spritecollide(self, elevcollidetiles, False)
-                self.rect.y += self.speed
-
-                self.rect.x -= self.speed
-                leftcollidedtiles = pygame.sprite.spritecollide(self, circuittiles, False)
-                leftcanmove = pygame.sprite.spritecollide(self, elevcollidetiles, False)
-                self.rect.x += self.speed
-
-                self.rect.y += self.speed
-                downcollidedtiles = pygame.sprite.spritecollide(self, circuittiles, False)
-                downcanmove = pygame.sprite.spritecollide(self, elevcollidetiles, False)
-                self.rect.y -= self.speed
-
-                self.rect.x += self.speed
-                rightcollidedtiles = pygame.sprite.spritecollide(self, circuittiles, False)
-                rightcanmove = pygame.sprite.spritecollide(self, elevcollidetiles, False)
-                self.rect.x -= self.speed
-
-                # jumping right next to an elevator makes you fly (feature?)
-                # but only when you jump on the left side while the elevator moves left
-                # keeping bc funy
-
-                if self.direction == Direction.up:
-                    if (len(upcanmove) == 0 or upcanmove[0].rect.bottom != self.rect.top) and \
-                            len(upcollidedtiles) > 0:
-                        if len(upcanmove) == 0:
-                            self.rect.y -= self.speed
-                        else:
-                            self.rect.top = upcanmove[0].rect.bottom
-                            self.direction = Direction.left
-
-                        if charcollide or pygame.sprite.collide_rect(self, plat):
-                            if len(upcanmove) == 0:
-                                plat.rect.y -= self.speed
-                            else:
-                                plat.rect.y -= abs(self.rect.top - upcanmove[0].rect.bottom)
+                if charcollide or pygame.sprite.collide_rect(self, plat):
+                    if upcanmove:
+                        plat.rect.y -= self.speed
                     else:
-                        self.direction = Direction.left
+                        plat.rect.y -= abs(self.rect.top - uptiles[0].rect.bottom)
 
-                if self.direction == Direction.left:
-                    if (len(leftcanmove) == 0 or leftcanmove[0].rect.right != self.rect.left) and \
-                            len(leftcollidedtiles) > 0:
-                        if len(leftcanmove) == 0:
-                            self.rect.x -= self.speed
-                        else:
-                            self.rect.left = leftcanmove[0].rect.right
-                            self.direction = Direction.down
+            if self.direction == Direction.left:
+                if leftcanmove:
+                    self.rect.x -= self.speed
+                elif lefttiles and lefttiles[0].rect.right != self.rect.left:
+                    self.rect.left = lefttiles[0].rect.right
+                    self.direction = Direction.down
+                else:
+                    self.direction = Direction.down
 
-                        if charcollide or pygame.sprite.collide_rect(self, plat):
-                            plat.transportmomentum = -self.speed
-                            if len(leftcanmove) == 0:
-                                plat.rect.x -= self.speed
-                            else:
-                                plat.rect.x -= abs(self.rect.left - leftcanmove[0].rect.right)
+                if charcollide or pygame.sprite.collide_rect(self, plat):
+                    plat.transportmomentum -= self.speed
+                    if leftcanmove:
+                        plat.rect.x -= self.speed
                     else:
-                        self.direction = Direction.down
+                        plat.rect.x -= abs(self.rect.left - lefttiles[0].rect.right)
 
-                if self.direction == Direction.down:
-                    if (len(downcanmove) == 0 or downcanmove[0].rect.top != self.rect.bottom) \
-                            and len(downcollidedtiles) > 0:
-                        if len(downcanmove) == 0:
-                            self.rect.y += self.speed
+            if self.direction == Direction.down:
+                if downcanmove:
+                    self.rect.y += self.speed
+                elif downtiles and downtiles[0].rect.top != self.rect.bottom:
+                    self.rect.bottom = downtiles[0].rect.top
+                    self.direction = Direction.right
+                else:
+                    self.direction = Direction.right
+
+                # lastcollide stops the player from seemingly hopping after running off an elevator
+                # the reason behind hopping is that the elevator moves down, but the player doesn't get
+                # pulled down because he has ceased contact with the elevator
+                if charcollide or pygame.sprite.collide_rect(self, plat):
+                    self.lastcollide = -1
+                    collision = True
+                    if plat.grounded:
+                        if plat.rect.left < self.rect.left:
+                            self.rect.x -= 2
+                            collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+                            self.rect.x += 2
+                            if len(collidedtiles) == 3:
+                                collision = False
+                        if plat.rect.right < self.rect.right:
+                            self.rect.x += 2
+                            collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+                            self.rect.x -= 2
+                            if len(collidedtiles) == 3:
+                                collision = False
+                    if collision:
+                        if downcanmove:
+                            plat.rect.y += self.speed
                         else:
-                            self.rect.bottom = downcanmove[0].rect.top
-                            self.direction = Direction.right
+                            plat.rect.y += abs(self.rect.top - downtiles[0].rect.top)
 
-                        # lastcollide stops the player from seemingly hopping after running off an elevator
-                        # the reason behind hopping is that the elevator moves down, but the player doesn't get
-                        # pulled down because he has ceased contact with the elevator
-                        if charcollide or pygame.sprite.collide_rect(self, plat):
-                            self.lastcollide = -1
-                            collision = True
-                            if plat.grounded:
-                                if plat.rect.left < self.rect.left:
-                                    self.rect.x -= 2
-                                    collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                                    self.rect.x += 2
-                                    if len(collidedtiles) == 3:
-                                        collision = False
-                                if plat.rect.right < self.rect.right:
-                                    self.rect.x += 2
-                                    collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                                    self.rect.x -= 2
-                                    if len(collidedtiles) == 3:
-                                        collision = False
-                            if collision:
-                                if len(downcanmove) == 0:
-                                    plat.rect.y += self.speed
-                                else:
-                                    plat.rect.y += abs(self.rect.top - downcanmove[0].rect.top)
+            if self.direction == Direction.right:
+                if rightcanmove:
+                    self.rect.x += self.speed
+                elif righttiles and righttiles[0].rect.left != self.rect.right:
+                    self.rect.right = uptiles[0].rect.left
+                    self.direction = Direction.up
+                else:
+                    self.direction = Direction.up
+
+                if charcollide or pygame.sprite.collide_rect(self, plat):
+                    plat.transportmomentum += self.speed
+                    if rightcanmove:
+                        plat.rect.x += self.speed
                     else:
-                        self.direction = Direction.right
-
-                if self.direction == Direction.right:
-                    if (len(rightcanmove) == 0 or rightcanmove[0].rect.left != self.rect.right) \
-                            and len(rightcollidedtiles) > 0:
-                        if len(rightcanmove) == 0:
-                            self.rect.x += self.speed
-                        else:
-                            self.rect.right = upcanmove[0].rect.left
-                            self.direction = Direction.up
-
-                        if charcollide or pygame.sprite.collide_rect(self, plat):
-                            plat.transportmomentum = self.speed
-                            if len(rightcanmove) == 0:
-                                plat.rect.x += self.speed
-                            else:
-                                plat.rect.x += abs(self.rect.right - rightcanmove[0].rect.left)
-                    else:
-                        self.direction = Direction.up
+                        plat.rect.x += abs(self.rect.right - righttiles[0].rect.left)
 
             if self.lastcollide == -1:
                 plat.vertforce -= self.speed
@@ -902,6 +893,7 @@ class Switch(Tile):
                 print(f"Signal: ID {self.ident}")
 
         else:
+            # if you are still within the rect of the switch it won't be toggleable to prevent accidental toggles
             if pygame.sprite.collide_rect(self, plat):
                 pass
             else:
@@ -957,18 +949,18 @@ class Turret(Tile):
 
                 if self.cooldown <= 0:
 
-                    power(self.image, self.rect)
+                    selfpowered = power(self.rect)
 
-                    if Direction.up in powered:
+                    if Direction.up in selfpowered:
                         projectiles.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1] + size / 4,
                                                Direction.down))
-                    if Direction.left in powered:
+                    if Direction.left in selfpowered:
                         projectiles.add(Bullet(self.rect.midright[0] + size / 4, self.rect.midright[1] - size / 8,
                                                Direction.right))
-                    if Direction.down in powered:
+                    if Direction.down in selfpowered:
                         projectiles.add(Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
                                                Direction.up))
-                    if Direction.right in powered:
+                    if Direction.right in selfpowered:
                         projectiles.add(Bullet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8,
                                                Direction.left))
                     self.cooldown = self.firerate
@@ -1013,15 +1005,15 @@ class Light(Tile):
 
     def update(self):
         lightingtiles.empty()
-        power(self.image, self.rect)
+        selfpowered = power(self.rect)
 
-        if Direction.up in powered:
+        if Direction.up in selfpowered:
             lightingtiles.add(Lighting(self.rect.midbottom[0] - width / 2, self.rect.midbottom[1], 0))
-        if Direction.left in powered:
+        if Direction.left in selfpowered:
             lightingtiles.add(Lighting(self.rect.midright[0], self.rect.midright[1] - width / 2, 90))
-        if Direction.down in powered:
+        if Direction.down in selfpowered:
             lightingtiles.add(Lighting(self.rect.midtop[0] - width / 2, self.rect.midtop[1], 180))
-        if Direction.right in powered:
+        if Direction.right in selfpowered:
             lightingtiles.add(Lighting(self.rect.midleft[0], self.rect.midleft[1] - width / 2, 270))
 
 
@@ -1084,29 +1076,26 @@ class Piston(Tile):
         self.ident = ident
         self.rotation = rotation
         self.set = False
+        self.child = None
 
     def update(self):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
+            self.set = False
 
         if not self.set:
-            entity = PistonRod(self.rect.x, self.rect.y, self.ident, [self.rect.x, self.rect.y], self.rotation)
-            entity.add(pistonrodtiles, sprites, elevcollidetiles, bulletcollidetiles, solidtiles, collidetiles, tiles)
+            self.child = PistonRod(self.rect.x, self.rect.y, self.ident, self.rect, self.rotation)
+            self.child.add(pistonrodtiles, sprites, elevcollidetiles, bulletcollidetiles, solidtiles, collidetiles,
+                           tiles)
             self.set = True
 
-        if self.rect.x != self.x or self.rect.y != self.y:
-            if power(self.image, self.rect):
-                pistonrodtiles.update(self.ident, True, [self.rect.x, self.rect.y])
-            else:
-                pistonrodtiles.update(self.ident, hostchange=[self.rect])
+        if power(self.rect):
+            self.child.update(True)
         else:
-            if power(self.image, self.rect):
-                pistonrodtiles.update(self.ident, True)
-            else:
-                pistonrodtiles.update(self.ident)
-        # print(self.rect)
+            self.child.update(False)
 
 
+# TODO: piston rod gone
 class PistonRod(Tile):
     def __init__(self, x, y, ident, hostrect, rotation=0, speed=2):
         super().__init__("assets/img/pistonrod.png", x, y, convert_alpha=True, rotate=rotation)
@@ -1115,86 +1104,47 @@ class PistonRod(Tile):
         self.rotation = rotation
         self.distance = 0
         self.speed = speed
-        self.active = False
 
-    def update(self, ident=-1, active=False, hostchange=None):
+    def update(self, active=False):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
+        print(f"self: {self.rect}")
 
-        if hostchange:
-            self.hostrect = hostchange
+        if power(self.rect):
+            active = True
+        if self.rotation % 2 == 0:
+            self.rect.x = self.hostrect.x
+        else:
+            self.rect.y = self.hostrect.y
 
-        if self.hostrect[0] - self.rect.x != 0 or self.hostrect[1] - self.rect.y != 0:
-            self.rect = self.hostrect
+        # one collision for self, one collision for host piston, one collision for the obstructive tile
+        if self.distance != 32 and len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
+            self.kill()
+        elif len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 2:
+            self.kill()
 
         if active:
-            if self.rect == self.hostrect:
-                self.active = True
-        elif self.distance == 32:
-            self.active = False
-
-        if self.ident == ident:
-            if self.rotation % 2 == 0:
-                if self.hostrect[0] - self.rect.x != 0 or abs(self.hostrect[1] - self.rect.y) != self.distance:
-                    self.rect.x = self.hostrect[0]
-                    self.rect.y += self.hostrect[1] - self.rect.y
+            if self.distance + self.speed <= 32:
+                self.distance += self.speed
             else:
-                if self.hostrect[1] - self.rect.y != 0 or abs(self.hostrect[0] - self.rect.x) != self.distance:
-                    self.rect.y = self.hostrect[1]
-                    self.rect.x += self.hostrect[0] - self.rect.x
-            # one collision for self, one collision for host piston, one collision for the obstructive tile
-            if len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
-                self.kill()
-
-            if self.active:
-                if self.direction == Direction.up:
-                    if abs(self.hostrect[1] - self.rect.y) + self.speed <= 32:
-                        self.distance += self.speed
-                    else:
-                        self.distance = self.hostrect[1] - 32
-                    self.rect.y = self.hostrect[1] - self.distance
-                if self.direction == Direction.left:
-                    if abs(self.hostrect[0] - self.rect.x) + self.speed <= 32:
-                        self.distance -= self.speed
-                    else:
-                        self.distance = self.hostrect[0] - 32
-                    self.rect.x = self.hostrect[0] - self.distance
-                if self.direction == Direction.down:
-                    if abs(self.hostrect[1] - self.rect.y) + self.speed <= 32:
-                        self.distance += self.speed
-                    else:
-                        self.distance = self.hostrect[1] + 32
-                    self.rect.y = self.hostrect[1] + self.distance
-                if self.direction == Direction.right:
-                    if abs(self.hostrect[0] - self.rect.x) + self.speed <= 32:
-                        self.distance += self.speed
-                    else:
-                        self.distance = self.hostrect[1] + 32
-                    self.rect.x = self.hostrect[0] + self.distance
-
-                if pygame.sprite.spritecollide(self, solidtiles, False):
-                    push(self.direction, self)
+                self.distance = 32
+        else:
+            if self.distance - self.speed >= 0:
+                self.distance -= self.speed
             else:
-                if self.direction == Direction.up:
-                    if abs(self.hostrect[1] - self.rect.y) - self.speed >= 0:
-                        self.rect.y += self.speed
-                    else:
-                        self.rect.y = self.hostrect[1]
-                if self.direction == Direction.left:
-                    if abs(self.hostrect[0] - self.rect.x) - self.speed >= 0:
-                        self.rect.x += self.speed
-                    else:
-                        self.rect.x = self.hostrect[0]
-                if self.direction == Direction.down:
-                    if abs(self.hostrect[1] - self.rect.y) - self.speed >= 0:
-                        self.rect.y -= self.speed
-                    else:
-                        self.rect.y = self.hostrect[1]
-                if self.direction == Direction.right:
-                    if abs(self.hostrect[0] - self.rect.x) - self.speed >= 0:
-                        self.rect.x -= self.speed
-                    else:
-                        self.hostrect[0] = self.rect.x
+                self.distance = 0
+
+        if self.direction == Direction.up:
+            self.rect.y = self.hostrect.y - self.distance
+        if self.direction == Direction.left:
+            self.rect.x = self.hostrect.x - self.distance
+        if self.direction == Direction.down:
+            self.rect.y = self.hostrect.y + self.distance
+        if self.direction == Direction.right:
+            self.rect.x = self.hostrect.x + self.distance
+
+        if pygame.sprite.spritecollide(self, solidtiles, False):
+            push(self.direction, self.hostrect, self)
 
 
 # refresh every frame

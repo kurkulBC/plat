@@ -17,7 +17,7 @@ color codes:
     piston - 100, 100, 100 + z(0-0-3)rotation
 
     (replace x with ID, y and z with special attribute)
-    (format (minval, defval, maxval))
+    value range format: (minval-defaultval-maxval)
 
 tile codes:
     space - 0
