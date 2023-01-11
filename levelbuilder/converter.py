@@ -37,22 +37,18 @@ while run:
             savedpixels.append(5)
         if data == (255, 128, 255):
             savedpixels.append(6)
-        if data[0] == 255 and 128 <= data[1] < 192 and data[2] == 128:
-            ident = data[1] - 128
-            savedpixels.append([7, ident])
-        if data[0] == 128 and 60 <= data[1] < 128 and 60 <= data[2] < 128:
-            ident = data[1] - 60
-            code = data[2] - 60
-            savedpixels.append([8, ident, code])
+        if data == (255, 128, 128):
+            savedpixels.append([7, -1])
+        if data == (128, 60, 60):
+            savedpixels.append([8, -1, 0])
         if data == (128, 0, 0):
             savedpixels.append(9)
-        if data[0] == 255 and data[1] == 1 and data[2] <= 128:
-            firerate = data[2]
-            savedpixels.append([10, firerate])
+        if data == (255, 0, 128):
+            savedpixels.append([10, 60])
         if data == (192, 192, 192):
             savedpixels.append(11)
-        if data[0] == 100 and data[1] == 100 and 100 <= data[2] <= 103:
-            savedpixels.append([13, data[2] - 100])
+        if data == (100, 100, 100):
+            savedpixels.append([13, 0])
     if newline:
         newline = False
         posx = 0

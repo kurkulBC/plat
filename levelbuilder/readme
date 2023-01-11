@@ -8,16 +8,17 @@ color codes:
     escape - 0, 0, 255
     elevator - 255, 0, 255
     circuit - 255, 128, 255
-    switch - 255, 128 + x, 128
-    door - 128, 60 + x, 60 + y(locked tile)
+    switch - 255, 128, 128 [x]
+    door - 128, 60, 60 [x, y(0-0-?)locked tile]
     hotrock - 128, 0, 0
-    turret - 255, 1, z(0-60-128)firerate
+    turret - 255, 0, 128 [z(0-60-128)firerate]
     light - 192, 192, 192
     vortex - N/A
-    piston - 100, 100, 100 + z(0-0-3)rotation
+    piston - 100, 100, 100 [z(0-0-3)rotation]
 
-    (replace x with ID, y and z with special attribute)
+    (x is ID, y is special attribute)
     value range format: (minval-defaultval-maxval)
+    these values cannot be assigned with the converter, you must edit the data output
 
 tile codes:
     space - 0
