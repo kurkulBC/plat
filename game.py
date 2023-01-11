@@ -8,7 +8,6 @@ import assets.hax as hax
 from enum import Enum, unique, auto
 import random
 from glitch_this import ImageGlitcher
-from math import floor, ceil
 import timeit
 
 invisiblespawn = False
@@ -96,14 +95,14 @@ stealth = False
 
 
 # define player class
-# TODO: fix movement values
+# TODO: make player sprite darker to contrast with the world
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.momentum = 0
-        self.baseaccel = 1
+        self.baseaccel = 2
         self.airaccel = 0.5
-        self.deaccel = 2
+        self.deaccel = 4
         self.acceleration = 0
         self.vel = 10
         self.turnrate = 1.5
@@ -111,11 +110,11 @@ class Player(pygame.sprite.Sprite):
         self.moving = False
         self.alive = True
         self.vertforce = 0
-        self.gravity = 1
-        self.jumpheight = 20
-        self.tvel = 21
+        self.gravity = 1.25
+        self.jumpheight = 18
+        self.tvel = 30
         self.jumping = False
-        self.minjump = 5
+        self.minjump = 2
         self.maxjump = self.jumpheight / self.gravity
         self.jumpholding = False
         self.jumptime = 0
@@ -127,7 +126,6 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.levelcount = -1
         self.coyotetime = 6
-        self.buffertime = 0
         self.buffering = False
         self.wasgrounded = 0
         self.mask = pygame.mask.from_surface(self.image)
@@ -137,15 +135,15 @@ class Player(pygame.sprite.Sprite):
         self.buffering = False
         self.rect.y += 2
         grounded = pygame.sprite.spritecollide(self, collidetiles, False)
+        self.rect.y -= 2
+
         if len(grounded) > 0 or self.rect.bottom >= height:
-            self.rect.y -= 2
             if not self.grounded:
                 self.grounded = True
                 if self.wasgrounded > 0 and self.vertforce != 0:
                     self.momentum /= (abs(self.vertforce) / self.tvel) ** 2 * self.vel
 
         else:
-            self.rect.y -= 2
             self.grounded = False
             self.wasgrounded += 1
             if 0 < self.wasgrounded <= self.coyotetime and not self.jumping:
@@ -171,42 +169,41 @@ class Player(pygame.sprite.Sprite):
                             self.jumptime += 1
                         if self.minjump <= self.jumptime <= self.maxjump and self.jumprelease > 0:
                             if self.vertforce > 0:
-                                self.vertforce *= (self.jumprelease - 1) / self.jumprelease
+                                self.vertforce /= 3
                                 self.jumprelease -= 1
         if self.grounded:
             self.jumping = False
             self.jumpholding = False
             self.jumptime = 0
             self.jumprelease = self.jumpsmoothing
-            self.buffertime = self.coyotetime
             self.wasgrounded = 0
         else:
             self.wasgrounded += 1
-        # makes movement visually smooth while still stopping the ability to slide over pits
-        # if self.buffertime - 1 == self.coyotetime:
-        #     self.rect.y -= 1
 
     # states of motion
     def idle(self):
         if self.momentum < 0:
             if self.grounded:
-                if self.momentum > -self.baseaccel:
+                if self.momentum > -self.deaccel:
                     self.momentum = 0
                 else:
                     self.momentum += self.acceleration
             else:
-                self.momentum += self.airaccel
+                if self.momentum > -self.airaccel:
+                    self.momentum = 0
+                else:
+                    self.momentum += self.airaccel
         if self.momentum > 0:
-            if self.momentum < self.baseaccel:
-                self.momentum = 0
+            if self.grounded:
+                if self.momentum < self.deaccel:
+                    self.momentum = 0
+                else:
+                    self.momentum -= self.acceleration
             else:
-                self.momentum -= self.acceleration
-        if -1 < self.momentum < 0 or 0 < self.momentum < 1:
-            self.momentum = 0
-        if self.momentum >= 0:
-            floor(self.momentum)
-        else:
-            ceil(self.momentum)
+                if self.momentum < self.airaccel:
+                    self.momentum = 0
+                else:
+                    self.momentum -= self.airaccel
 
     def moveleft(self):
         if not hax.active or not hax.noclip:
@@ -251,13 +248,8 @@ class Player(pygame.sprite.Sprite):
 
     # run for character motion
     def move(self):
-        # acceleration:vel ratio = 1:8
-        # gravity:jumpheight:tvel ratio = 1:20:30
-
-        # change motion values correspondingly
         keys = pygame.key.get_pressed()
         self.gravitycalc()
-        self.moving = False
 
         if self.grounded:
             if self.moving:
@@ -267,23 +259,36 @@ class Player(pygame.sprite.Sprite):
         else:
             self.acceleration = self.airaccel
 
+        self.moving = False
+
         if not cutscene:
             # key input
 
             if keys[pygame.K_p] and hax.active and hax.canfly:
                 self.rect.y -= hax.flyspeed
             if keys[pygame.K_o]:
+                x = 0
                 for i in range(100):
-                    if 25 < i <= 75:
-                        x = -1
-                    else:
-                        x = 1
-                    if i > 50:
-                        y = -1
-                    else:
-                        y = 1
-                    particlesys.add(pos=plat.rect.center, vel=[10, 10],
+                    x = abs(x)
+
+                    if i < 25:
+                        x += 4
+                    elif 25 <= i < 50:
+                        x -= 4
+                    elif 50 <= i < 75:
+                        x += 4
+                    elif 75 <= i < 100:
+                        x -= 4
+
+                    y = 100 - x
+
+                    if i >= 50:
+                        x *= -1
+                    if 25 <= i < 75:
+                        y *= -1
+                    particlesys.add(pos=plat.rect.center, vel=[x / 10, y / 10],
                                     mass=8, decay=0, gravity=0, color=(190, 195, 199), delay=i)
+
             if keys[pygame.K_a] or keys[pygame.K_LEFT]:
                 self.moveleft()
             if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
@@ -546,7 +551,7 @@ def animate():
             if 20 < animtime < 50:
                 plat.moveleft()
             if animtime == 55:
-                vortextiles.update()
+                vortextiles.update(0)
                 shake(30, 5, 5, 1, 1)
                 animsound.play()
                 animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch2.ogg")
@@ -558,7 +563,7 @@ def animate():
             if 60 <= animtime < 90:
                 plat.idle()
             if 90 <= animtime < 240:
-                vortextiles.update()
+                vortextiles.update(0)
                 if animtime % 2 != 0:
                     plat.rect.x -= int((animtime - 90) / 10)
             if animtime == 110:
@@ -633,10 +638,12 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 
 # push things around
-def push(direction, saferect=None, *instigators):
+def push(direction, saferects=None, *instigators):
+    if not isinstance(saferects, list):
+        saferects = [saferects]
     nextcollide = []
     for entity in instigators:
-        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect != saferect])
+        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect not in saferects])
         collided = pygame.sprite.spritecollide(entity, tempgroup, False)
         for collision in collided:
             nextcollide.append(collision)
@@ -912,7 +919,7 @@ class Door(Tile):
             self.add(sprites2, collidetiles, elevcollidetiles, bulletcollidetiles)
 
         else:
-            if self.ident == ident:
+            if self.ident == ident and ident >= 0:
                 if sprites2.has(self):
                     self.kill()
                     self.add(doortiles, tiles)
@@ -1060,8 +1067,8 @@ class Vortex(Tile):
         self.ident = ident
         self.rawimg = image
 
-    def update(self, image="", ident=0):
-        if ident == self.ident:
+    def update(self, image="", ident=-1):
+        if ident == self.ident and ident >= 0:
             glitch(self.rawimg)
             self.rawimg = glitchimg
             if image == "":
@@ -1071,9 +1078,8 @@ class Vortex(Tile):
 
 
 class Piston(Tile):
-    def __init__(self, x, y, ident, rotation=0):
+    def __init__(self, x, y, rotation=0):
         super().__init__("assets/img/piston.png", x, y, convert_alpha=True, rotate=rotation)
-        self.ident = ident
         self.rotation = rotation
         self.set = False
         self.child = None
@@ -1082,9 +1088,11 @@ class Piston(Tile):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
             self.set = False
+            if self.child is not None:
+                self.child.kill()
 
         if not self.set:
-            self.child = PistonRod(self.rect.x, self.rect.y, self.ident, self.rect, self.rotation)
+            self.child = PistonRod(self.rect.x, self.rect.y, self.rect, self.rotation)
             self.child.add(pistonrodtiles, sprites, elevcollidetiles, bulletcollidetiles, solidtiles, collidetiles,
                            tiles)
             self.set = True
@@ -1095,20 +1103,18 @@ class Piston(Tile):
             self.child.update(False)
 
 
-# TODO: piston rod gone
 class PistonRod(Tile):
-    def __init__(self, x, y, ident, hostrect, rotation=0, speed=2):
+    def __init__(self, x, y, hostrect, rotation=0, speed=2):
         super().__init__("assets/img/pistonrod.png", x, y, convert_alpha=True, rotate=rotation)
-        self.ident = ident
         self.hostrect = hostrect
         self.rotation = rotation
         self.distance = 0
         self.speed = speed
 
     def update(self, active=False):
+        # the parent handles killing child after player death
         if not plat.alive:
-            self.rect.x, self.rect.y = self.x, self.y
-        print(f"self: {self.rect}")
+            pass
 
         if power(self.rect):
             active = True
@@ -1118,8 +1124,10 @@ class PistonRod(Tile):
             self.rect.y = self.hostrect.y
 
         # one collision for self, one collision for host piston, one collision for the obstructive tile
-        if self.distance != 32 and len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
-            self.kill()
+        # TODO: add sound for breaking
+        if self.distance != 32:
+            if len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 3:
+                self.kill()
         elif len(pygame.sprite.spritecollide(self, solidtiles, False)) >= 2:
             self.kill()
 
@@ -1144,7 +1152,7 @@ class PistonRod(Tile):
             self.rect.x = self.hostrect.x + self.distance
 
         if pygame.sprite.spritecollide(self, solidtiles, False):
-            push(self.direction, self.hostrect, self)
+            push(self.direction, [self.hostrect, self.rect], self)
 
 
 # refresh every frame
