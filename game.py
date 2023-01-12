@@ -95,17 +95,17 @@ stealth = False
 
 
 # define player class
-# TODO: make player sprite darker to contrast with the world
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.momentum = 0
-        self.baseaccel = 2
-        self.airaccel = 0.5
+        self.baseaccel = 1.5
+        self.airaccel = 0.3
         self.deaccel = 4
+        self.airdeaccel = 0.5
         self.acceleration = 0
         self.vel = 10
-        self.turnrate = 1.5
+        self.turnrate = 4
         self.transportmomentum = 0
         self.moving = False
         self.alive = True
@@ -120,7 +120,7 @@ class Player(pygame.sprite.Sprite):
         self.jumptime = 0
         self.jumpsmoothing = 5
         self.jumprelease = 0
-        self.grounded = False
+        self.grounded = True
         self.escaped = True
         self.image = pygame.image.load("assets/img/platterman.png")
         self.rect = self.image.get_rect()
@@ -137,11 +137,12 @@ class Player(pygame.sprite.Sprite):
         grounded = pygame.sprite.spritecollide(self, collidetiles, False)
         self.rect.y -= 2
 
-        if len(grounded) > 0 or self.rect.bottom >= height:
+        if grounded or self.rect.bottom >= height:
             if not self.grounded:
                 self.grounded = True
-                if self.wasgrounded > 0 and self.vertforce != 0:
-                    self.momentum /= (abs(self.vertforce) / self.tvel) ** 2 * self.vel
+                self.momentum /= 4
+                # this line doesn't work because vertforce is always 0 at this point
+                # self.momentum /= (abs(self.vertforce + 1) / self.tvel) ** 2 * self.vel
 
         else:
             self.grounded = False
@@ -180,6 +181,18 @@ class Player(pygame.sprite.Sprite):
         else:
             self.wasgrounded += 1
 
+    def changeaccel(self):
+        if self.moving:
+            if self.grounded:
+                self.acceleration = self.baseaccel
+            else:
+                self.acceleration = self.airaccel
+        else:
+            if self.grounded:
+                self.acceleration = self.deaccel
+            else:
+                self.acceleration = self.airdeaccel
+
     # states of motion
     def idle(self):
         if self.momentum < 0:
@@ -189,10 +202,10 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.momentum += self.acceleration
             else:
-                if self.momentum > -self.airaccel:
+                if self.momentum > -self.airdeaccel:
                     self.momentum = 0
                 else:
-                    self.momentum += self.airaccel
+                    self.momentum += self.acceleration
         if self.momentum > 0:
             if self.grounded:
                 if self.momentum < self.deaccel:
@@ -200,36 +213,36 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.momentum -= self.acceleration
             else:
-                if self.momentum < self.airaccel:
+                if self.momentum < self.airdeaccel:
                     self.momentum = 0
                 else:
-                    self.momentum -= self.airaccel
+                    self.momentum -= self.acceleration
 
     def moveleft(self):
+        self.moving = True
         if not hax.active or not hax.noclip:
             if abs(self.momentum - self.acceleration) < self.vel:
-                if self.momentum > 0:
-                    self.momentum -= self.acceleration + self.turnrate
+                if self.momentum - self.acceleration * self.turnrate > 0:
+                    self.momentum -= self.acceleration * self.turnrate
                 else:
                     self.momentum -= self.acceleration
             else:
                 self.momentum = -self.vel
         else:
             self.rect.x -= hax.flyspeed
-        self.moving = True
 
     def moveright(self):
+        self.moving = True
         if not hax.active or not hax.noclip:
             if self.momentum + self.acceleration < self.vel:
-                if self.momentum < 0:
-                    self.momentum += self.acceleration + self.turnrate
+                if self.momentum + self.acceleration * self.turnrate < 0:
+                    self.momentum += self.acceleration * self.turnrate
                 else:
                     self.momentum += self.acceleration
             else:
                 self.momentum = self.vel
         else:
             self.rect.x += hax.flyspeed
-        self.moving = True
 
     def moveup(self):
         if not hax.active or not hax.noclip:
@@ -250,14 +263,6 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         keys = pygame.key.get_pressed()
         self.gravitycalc()
-
-        if self.grounded:
-            if self.moving:
-                self.acceleration = self.baseaccel
-            else:
-                self.acceleration = self.deaccel
-        else:
-            self.acceleration = self.airaccel
 
         self.moving = False
 
@@ -286,7 +291,7 @@ class Player(pygame.sprite.Sprite):
                         x *= -1
                     if 25 <= i < 75:
                         y *= -1
-                    particlesys.add(pos=plat.rect.center, vel=[x / 10, y / 10],
+                    particlesys.add(pos=plat.rect.center, vel=[x / 100, y / 100],
                                     mass=8, decay=0, gravity=0, color=(190, 195, 199), delay=i)
 
             if keys[pygame.K_a] or keys[pygame.K_LEFT]:
@@ -304,6 +309,8 @@ class Player(pygame.sprite.Sprite):
 
             if not self.moving:
                 self.idle()
+
+        self.changeaccel()
 
         if self.momentum < self.vel * -1:
             self.momentum = self.vel * -1
@@ -449,16 +456,15 @@ class Particle(object):
                                                           particle['mass'], particle['mass']])
 
             if particle['mass'] <= 0 or \
-                    not 0 < particle['pos'][0] <= width - particle['mass'] / 2 or \
-                    not particle['pos'][0] <= height - particle['mass'] / 2:
+                    not 0 - particle['mass'] / 2 <= particle['pos'][0] <= width + particle['mass'] / 2 or \
+                    not 0 - particle['mass'] / 2 <= particle['pos'][1] <= height + particle['mass'] / 2:
                 self.particles.remove(particle)
 
         for particle in self.heldparticles:
             if particle['delay'] <= 0:
-                del particle['delay']
+                particle.pop('delay')
                 self.particles.append(dict(particle))
-        self.heldparticles[:] = [particle for particle in self.heldparticles if 'delay' in particle and
-                                 particle['delay'] > 0]
+        self.heldparticles[:] = [particle for particle in self.heldparticles if 'delay' in particle]
         for particle in self.heldparticles:
             particle['delay'] -= 1
 
@@ -793,13 +799,17 @@ class Elev(Tile):
             # but only when you jump on the left side while the elevator moves left
             # keeping bc funy
             if self.direction == Direction.up:
-                if upcanmove:
-                    self.rect.y -= self.speed
-                elif uptiles and uptiles[0].rect.bottom != self.rect.top:
-                    self.rect.top = uptiles[0].rect.bottom
+                if self.rect.top - self.speed < 0:
+                    self.rect.top = 0
                     self.direction = Direction.left
                 else:
-                    self.direction = Direction.left
+                    if upcanmove:
+                        self.rect.y -= self.speed
+                    elif uptiles and uptiles[0].rect.bottom != self.rect.top:
+                        self.rect.top = uptiles[0].rect.bottom
+                        self.direction = Direction.left
+                    else:
+                        self.direction = Direction.left
 
                 if charcollide or pygame.sprite.collide_rect(self, plat):
                     if upcanmove:
@@ -808,13 +818,17 @@ class Elev(Tile):
                         plat.rect.y -= abs(self.rect.top - uptiles[0].rect.bottom)
 
             if self.direction == Direction.left:
-                if leftcanmove:
-                    self.rect.x -= self.speed
-                elif lefttiles and lefttiles[0].rect.right != self.rect.left:
-                    self.rect.left = lefttiles[0].rect.right
+                if self.rect.left - self.speed < 0:
+                    self.rect.left = 0
                     self.direction = Direction.down
                 else:
-                    self.direction = Direction.down
+                    if leftcanmove:
+                        self.rect.x -= self.speed
+                    elif lefttiles and lefttiles[0].rect.right != self.rect.left:
+                        self.rect.left = lefttiles[0].rect.right
+                        self.direction = Direction.down
+                    else:
+                        self.direction = Direction.down
 
                 if charcollide or pygame.sprite.collide_rect(self, plat):
                     plat.transportmomentum -= self.speed
@@ -824,47 +838,56 @@ class Elev(Tile):
                         plat.rect.x -= abs(self.rect.left - lefttiles[0].rect.right)
 
             if self.direction == Direction.down:
-                if downcanmove:
-                    self.rect.y += self.speed
-                elif downtiles and downtiles[0].rect.top != self.rect.bottom:
-                    self.rect.bottom = downtiles[0].rect.top
+                if self.rect.bottom + self.speed > height:
+                    self.rect.bottom = height
                     self.direction = Direction.right
                 else:
-                    self.direction = Direction.right
+                    if downcanmove:
+                        self.rect.y += self.speed
+                    elif downtiles and downtiles[0].rect.top != self.rect.bottom:
+                        self.rect.bottom = downtiles[0].rect.top
+                        self.direction = Direction.right
+                    else:
+                        self.direction = Direction.right
 
                 # lastcollide stops the player from seemingly hopping after running off an elevator
                 # the reason behind hopping is that the elevator moves down, but the player doesn't get
                 # pulled down because he has ceased contact with the elevator
-                if charcollide or pygame.sprite.collide_rect(self, plat):
-                    self.lastcollide = -1
-                    collision = True
-                    if plat.grounded:
-                        if plat.rect.left < self.rect.left:
-                            self.rect.x -= 2
-                            collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                            self.rect.x += 2
-                            if len(collidedtiles) == 3:
-                                collision = False
-                        if plat.rect.right < self.rect.right:
-                            self.rect.x += 2
-                            collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                            self.rect.x -= 2
-                            if len(collidedtiles) == 3:
-                                collision = False
-                    if collision:
-                        if downcanmove:
-                            plat.rect.y += self.speed
-                        else:
-                            plat.rect.y += abs(self.rect.top - downtiles[0].rect.top)
+                if self.direction == Direction.down:
+                    if charcollide or pygame.sprite.collide_rect(self, plat):
+                        self.lastcollide = -1
+                        collision = True
+                        if plat.grounded:
+                            if plat.rect.left < self.rect.left:
+                                self.rect.x -= 2
+                                collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+                                self.rect.x += 2
+                                if len(collidedtiles) == 3:
+                                    collision = False
+                            if plat.rect.right < self.rect.right:
+                                self.rect.x += 2
+                                collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+                                self.rect.x -= 2
+                                if len(collidedtiles) == 3:
+                                    collision = False
+                        if collision:
+                            if downcanmove:
+                                plat.rect.y += self.speed
+                            else:
+                                plat.rect.y += abs(self.rect.top - downtiles[0].rect.top)
 
             if self.direction == Direction.right:
-                if rightcanmove:
-                    self.rect.x += self.speed
-                elif righttiles and righttiles[0].rect.left != self.rect.right:
-                    self.rect.right = uptiles[0].rect.left
+                if self.rect.right + self.speed > width:
+                    self.rect.right = width
                     self.direction = Direction.up
                 else:
-                    self.direction = Direction.up
+                    if rightcanmove:
+                        self.rect.x += self.speed
+                    elif righttiles and righttiles[0].rect.left != self.rect.right:
+                        self.rect.right = uptiles[0].rect.left
+                        self.direction = Direction.up
+                    else:
+                        self.direction = Direction.up
 
                 if charcollide or pygame.sprite.collide_rect(self, plat):
                     plat.transportmomentum += self.speed
@@ -1209,34 +1232,11 @@ while run:
             leveltext = font1.render("", False, colors.WHITE)
 
         # clears old tile data
-        spacetiles.empty()
-        blocktiles.empty()
         spawn = None
-        lavatiles.empty()
-        esctiles.empty()
-        elevtiles.empty()
-        circuittiles.empty()
-        switchtiles.empty()
-        doortiles.empty()
-        rocktiles.empty()
-        turrettiles.empty()
-        bullets.empty()
-        pistontiles.empty()
-        pistonrodtiles.empty()
-
         stealth = False
-        lighttiles.empty()
-        lightingtiles.empty()
 
-        spritesbg.empty()
-        sprites.empty()
-        sprites2.empty()
-        projectiles.empty()
-        collidetiles.empty()
-        elevcollidetiles.empty()
-        bulletcollidetiles.empty()
-        solidtiles.empty()
-        tiles.empty()
+        for tile in tiles:
+            tile.kill()
 
         # loads level data
         for strip in currentlvl:
