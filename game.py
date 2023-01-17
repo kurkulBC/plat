@@ -10,10 +10,9 @@ import random
 from glitch_this import ImageGlitcher
 import timeit
 
-invisiblespawn = False
-
+# init ~1.7s
 pygame.init()
-# hax.active = True
+hax.active = False
 screenwidth = 1072
 screenheight = 1072
 width = 1024
@@ -30,7 +29,7 @@ framerate = 60
 
 screen = pygame.display.set_mode((screenwidth, screenheight), pygame.FULLSCREEN | pygame.SCALED)
 win = pygame.Surface((screenwidth, screenheight))
-tempsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
+shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
 
 pygame.display.set_caption("Platman")
 pygame.display.set_icon(pygame.image.load("assets/img/platterman.png"))
@@ -38,6 +37,7 @@ clock = pygame.time.Clock()
 levelx = 0
 levely = 0
 cutscene = False
+invisiblespawn = False
 cutscenecount = 0
 glitcher = ImageGlitcher()
 glitchimg = pygame.image.load("assets/img/escape.png")
@@ -537,7 +537,7 @@ def animate():
     global cutscene
     global cutscenecount
     global animtime
-    global tempsurf
+    global shadowsurf
     global zoom
     global animlive
     global screenshake
@@ -584,15 +584,15 @@ def animate():
             if 110 <= animtime < 180:
                 plat.moveup()
                 plat.moveright()
-                tempsurf = pygame.Surface((width * 3, height * 3), pygame.SRCALPHA)
-                pygame.draw.rect(tempsurf, (colors.DPURPLE[0], colors.DPURPLE[1], colors.DPURPLE[2],
-                                            (2 * animtime - 180)), tempsurf.get_rect())
+                shadowsurf = pygame.Surface((width * 3, height * 3), pygame.SRCALPHA)
+                pygame.draw.rect(shadowsurf, (colors.DPURPLE[0], colors.DPURPLE[1], colors.DPURPLE[2],
+                                              (2 * animtime - 180)), shadowsurf.get_rect())
                 shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
                 screenrotation = (animtime - 109) * (90 / 130)
             if 180 <= animtime < 300:
-                pygame.draw.rect(tempsurf,
+                pygame.draw.rect(shadowsurf,
                                  (colors.DPURPLE[0], colors.DPURPLE[1], colors.DPURPLE[2], 2 * 180 - 180),
-                                 tempsurf.get_rect())
+                                 shadowsurf.get_rect())
                 shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
             if animtime == 300:
                 animsound.play()
@@ -601,7 +601,7 @@ def animate():
                 vortextiles.update("assets/img/escape.png")
                 vortextiles.update("assets/img/spawn.png", 1)
                 shake(10, 5, 5, 0, 0)
-                tempsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
+                shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
                 animsound.play()
             if 420 <= animtime < 570:
                 zoom -= 15.5 / 150
@@ -649,23 +649,21 @@ def push(direction, saferects=None, *instigators):
         saferects = [saferects]
     nextcollide = []
     for entity in instigators:
-        tempgroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect not in saferects])
-        collided = pygame.sprite.spritecollide(entity, tempgroup, False)
+        collisiongroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect not in saferects])
+        collided = pygame.sprite.spritecollide(entity, collisiongroup, False)
         for collision in collided:
             nextcollide.append(collision)
-        if collided:
             if direction == Direction.up:
-                for collision in collided:
                     collision.rect.bottom = entity.rect.top
             if direction == Direction.left:
-                for collision in collided:
                     collision.rect.right = entity.rect.left
             if direction == Direction.down:
-                for collision in collided:
                     collision.rect.top = entity.rect.bottom
             if direction == Direction.left:
-                for collision in collided:
                     collision.rect.left = entity.rect.right
+            if callable(getattr(collision, "push", None)):
+                # noinspection PyUnresolvedReferences
+                collision.push(direction)
     if nextcollide:
         push(direction, *nextcollide)
 
@@ -701,15 +699,16 @@ class Tile(pygame.sprite.Sprite):
 
 
 class TempObj(pygame.sprite.Sprite):
-    def __init__(self, img, x=0, y=0, convert_alpha=False):
+    def __init__(self, img=None, x=0, y=0, convert_alpha=False):
         super().__init__()
-        if convert_alpha:
-            self.image = pygame.image.load(img).convert_alpha()
-            self.mask = pygame.mask.from_surface(self.image)
-        else:
-            self.image = pygame.image.load(img)
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x, y
+        if img is not None:
+            if convert_alpha:
+                self.image = pygame.image.load(img).convert_alpha()
+                self.mask = pygame.mask.from_surface(self.image)
+            else:
+                self.image = pygame.image.load(img)
+            self.rect = self.image.get_rect()
+            self.rect.x, self.rect.y = x, y
 
     def update(self):
         if not plat.alive:
@@ -982,10 +981,10 @@ class Turret(Tile):
                     selfpowered = power(self.rect)
 
                     if Direction.up in selfpowered:
-                        projectiles.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1] + size / 4,
+                        projectiles.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1],
                                                Direction.down))
                     if Direction.left in selfpowered:
-                        projectiles.add(Bullet(self.rect.midright[0] + size / 4, self.rect.midright[1] - size / 8,
+                        projectiles.add(Bullet(self.rect.midright[0], self.rect.midright[1] - size / 8,
                                                Direction.right))
                     if Direction.down in selfpowered:
                         projectiles.add(Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
@@ -1034,54 +1033,45 @@ class Light(Tile):
         super().__init__("assets/img/stealth/light.png", x, y)
 
     def update(self):
-        lightingtiles.empty()
         selfpowered = power(self.rect)
 
-        if Direction.up in selfpowered:
-            lightingtiles.add(Lighting(self.rect.midbottom[0] - width / 2, self.rect.midbottom[1], 0))
-        if Direction.left in selfpowered:
-            lightingtiles.add(Lighting(self.rect.midright[0], self.rect.midright[1] - width / 2, 90))
-        if Direction.down in selfpowered:
-            lightingtiles.add(Lighting(self.rect.midtop[0] - width / 2, self.rect.midtop[1], 180))
-        if Direction.right in selfpowered:
-            lightingtiles.add(Lighting(self.rect.midleft[0], self.rect.midleft[1] - width / 2, 270))
+        for direction in selfpowered:
+            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, direction))
 
 
-class Lighting(Tile):
-    def __init__(self, x, y, rotation=0, angle=75.0, offset=16, inverse=False, filler=False):
-        super().__init__("assets/img/stealth/lighting.png", x, y)
-        self.rotation = rotation
-        self.angle = angle
-        self.offset = offset
-        self.length = 1
-        self.inverse = inverse
-        self.filler = filler
-        self.funclength = self.length + self.offset
-        self.vec1 = pygame.math.Vector2()
-        self.vec2 = pygame.math.Vector2()
-        self.set = False
+class Lighting(TempObj):
+    def __init__(self, x, y, hostrect, direction: Direction):
+        super().__init__(x=x, y=y)
+        self.hostrect = hostrect
+        self.rect = pygame.rect.Rect((self.hostrect.centerx, self.hostrect.centery, 1, 1))
+        self.rect.center = self.hostrect.center
+        self.direction = direction
+        self.vector = None
+        self.maxrotate = None
+
+        if self.direction == Direction.up:
+            self.vector = pygame.math.Vector2(-1, 1).normalize()
+            self.maxrotate = pygame.math.Vector2(1, 1)
+        if self.direction == Direction.left:
+            self.vector = pygame.math.Vector2(-1, -1).normalize()
+            self.maxrotate = pygame.math.Vector2(-1, 1)
+        if self.direction == Direction.down:
+            self.vector = pygame.math.Vector2(1, -1).normalize()
+            self.maxrotate = pygame.math.Vector2(-1, -1)
+        if self.direction == Direction.right:
+            self.vector = pygame.math.Vector2(1, 1).normalize()
+            self.maxrotate = pygame.math.Vector2(1, -1)
 
     def update(self):
-        if not self.set:
-            self.set = True
-            self.rect.x, self.rect.y = self.x, self.y
+        while self.vector.angle_to(self.maxrotate) != 0:
+            if pygame.sprite.spritecollide(self, solidtiles, False) and not self.rect.colliderect(self.hostrect):
+                self.rect -= self.vector
+                pygame.draw.line(shadowsurf, colors.LGRAY, self.hostrect.center, self.rect.center)
+                self.rect.center = self.hostrect.center
+                self.vector.rotate_ip(1)
+            else:
+                self.rect += self.vector
 
-            if not self.inverse:
-                lightingtiles.add(Lighting(self.rect.x, self.rect.y, self.rotation, self.angle, -self.offset,
-                                           filler=False))
-            if self.offset > 0:
-                lightingtiles.add(Lighting(self.rect.x, self.rect.y, self.rotation, self.angle, self.offset - 1,
-                                           filler=True))
-            if self.offset < 0:
-                lightingtiles.add(Lighting(self.rect.x, self.rect.y, self.rotation, self.angle, self.offset + 1,
-                                           filler=True))
-            if self.angle > 0:
-                lightingtiles.add(Lighting(self.rect.x, self.rect.y, self.rotation, self.angle - 5, self.offset,
-                                           filler=False))
-
-        if not self.inverse:
-            if self.rotation == 0:
-                self.vec1 = pygame.math.Vector2()
 
 
 class Vortex(Tile):
@@ -1180,6 +1170,7 @@ class PistonRod(Tile):
 
 # refresh every frame
 def redrawgamewindow():
+    # ~10ms
     for sprite in spritesbg:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     for sprite in sprites:
@@ -1194,9 +1185,10 @@ def redrawgamewindow():
     win.blit(plat.image, (plat.rect.x + screenshake[0], plat.rect.y + screenshake[1]))
     for sprite in vortextiles:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
-    if len(lighttiles) > 0:
-        win.blit(lights, (screenshake[0], screenshake[1]), special_flags=pygame.BLEND_RGBA_SUB)
-    win.blit(tempsurf, (0, 0))
+    if lighttiles:
+        # blend_rgba takes up A LOT of time (~23ms PER CALL)
+        win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+    # ~1ms
     pygame.display.flip()
 
 
@@ -1343,7 +1335,7 @@ while run:
         if spawn is None:
             print("Error: No spawn found")
             run = False
-        if len(lighttiles) > 0:
+        if lighttiles:
             stealth = True
 
         spritesbg.add(spacetiles, lavatiles, circuittiles)
@@ -1360,8 +1352,8 @@ while run:
 
         plat.die("respawn", "game")
 
-    if pygame.sprite.spritecollide(plat, lavatiles, False):
-        plat.die("lava", pygame.sprite.spritecollide(plat, lavatiles, False))
+    if lavadeath := pygame.sprite.spritecollide(plat, lavatiles, False):
+        plat.die("lava", lavadeath)
     if pygame.sprite.spritecollide(plat, esctiles, False):
         cutscene = False
         invisiblespawn = False
@@ -1388,22 +1380,30 @@ while run:
         shakeintensity = [0, 0]
         screenshake = [0, 0]
 
+    # majority of resources are used here and down, above is ~0.1ms
+
+    # ~5ms
     elevtiles.update()
     switchtiles.update()
     turrettiles.update()
     pistontiles.update()
     projectiles.update()
-    lighttiles.update()
     plat.move()
 
     if stealth:
         lights.fill(colors.DGRAY)
+        lightingtiles.empty()
+        lighttiles.update()
         lightingtiles.update()
 
     # reset game window
+
+    # ~1ms
     win = pygame.Surface((screenwidth / zoom, screenheight / zoom))
-    win.fill((0, 0, 0))
+    win.fill(colors.BLACK)
+    # ~11ms
     redrawgamewindow()
+    # ~8ms
     screen.blit(pygame.transform.scale(pygame.transform.rotate(win, screenrotation),
                                        screen.get_size()), (0, 0))
 
