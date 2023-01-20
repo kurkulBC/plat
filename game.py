@@ -9,6 +9,7 @@ from enum import Enum, unique, auto
 import random
 from glitch_this import ImageGlitcher
 import timeit
+from assets.data import shadowcasting
 
 # init ~1.7s
 pygame.init()
@@ -120,6 +121,7 @@ class Player(pygame.sprite.Sprite):
         self.jumptime = 0
         self.jumpsmoothing = 5
         self.jumprelease = 0
+        self.weight = 0
         self.grounded = True
         self.escaped = True
         self.image = pygame.image.load("assets/img/platterman.png")
@@ -489,27 +491,25 @@ class Demo(pygame.sprite.Sprite):
 def power(rect) -> list[Direction]:
     powered = []
 
-    tempsprite = Demo(rect)
+    rect.y -= 1
+    uppower = pygame.sprite.spritecollide(rect, rocktiles, False)
+    upblock = pygame.sprite.spritecollide(rect, doortiles, False)
+    rect.y += 1
 
-    tempsprite.rect.y -= 1
-    uppower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
-    upblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
-    tempsprite.rect.y += 1
+    rect.x -= 1
+    leftpower = pygame.sprite.spritecollide(rect, rocktiles, False)
+    leftblock = pygame.sprite.spritecollide(rect, doortiles, False)
+    rect.x += 1
 
-    tempsprite.rect.x -= 1
-    leftpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
-    leftblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
-    tempsprite.rect.x += 1
+    rect.y += 1
+    downpower = pygame.sprite.spritecollide(rect, rocktiles, False)
+    downblock = pygame.sprite.spritecollide(rect, doortiles, False)
+    rect.y -= 1
 
-    tempsprite.rect.y += 1
-    downpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
-    downblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
-    tempsprite.rect.y -= 1
-
-    tempsprite.rect.x += 1
-    rightpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
-    rightblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
-    tempsprite.rect.x -= 1
+    rect.x += 1
+    rightpower = pygame.sprite.spritecollide(rect, rocktiles, False)
+    rightblock = pygame.sprite.spritecollide(rect, doortiles, False)
+    rect.x -= 1
 
     if len(uppower) > len(upblock):
         powered.append(Direction.up)
@@ -585,14 +585,11 @@ def animate():
                 plat.moveup()
                 plat.moveright()
                 shadowsurf = pygame.Surface((width * 3, height * 3), pygame.SRCALPHA)
-                pygame.draw.rect(shadowsurf, (colors.DPURPLE[0], colors.DPURPLE[1], colors.DPURPLE[2],
-                                              (2 * animtime - 180)), shadowsurf.get_rect())
+                pygame.draw.rect(shadowsurf, (*colors.DPURPLE, (2 * animtime - 180)), shadowsurf.get_rect())
                 shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
                 screenrotation = (animtime - 109) * (90 / 130)
             if 180 <= animtime < 300:
-                pygame.draw.rect(shadowsurf,
-                                 (colors.DPURPLE[0], colors.DPURPLE[1], colors.DPURPLE[2], 2 * 180 - 180),
-                                 shadowsurf.get_rect())
+                pygame.draw.rect(shadowsurf, (*colors.DPURPLE, 2 * 180 - 180), shadowsurf.get_rect())
                 shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
             if animtime == 300:
                 animsound.play()
@@ -644,7 +641,9 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 
 # push things around
-def push(direction, saferects=None, *instigators):
+def push(direction:Direction, saferects=None, *instigators:pygame.sprite.Sprite, weight=1):
+    if direction not in Direction:
+        raise ValueError("Direction required as input")
     if not isinstance(saferects, list):
         saferects = [saferects]
     nextcollide = []
@@ -652,28 +651,32 @@ def push(direction, saferects=None, *instigators):
         collisiongroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect not in saferects])
         collided = pygame.sprite.spritecollide(entity, collisiongroup, False)
         for collision in collided:
-            nextcollide.append(collision)
-            if direction == Direction.up:
-                    collision.rect.bottom = entity.rect.top
-            if direction == Direction.left:
-                    collision.rect.right = entity.rect.left
-            if direction == Direction.down:
-                    collision.rect.top = entity.rect.bottom
-            if direction == Direction.left:
-                    collision.rect.left = entity.rect.right
-            if callable(getattr(collision, "push", None)):
-                # noinspection PyUnresolvedReferences
-                collision.push(direction)
+            # noinspection PyUnresolvedReferences
+            if hasattr(collision, "weight") and collision.weight <= weight or not hasattr(collision, "weight"):
+                if collision.weight > 0:
+                    nextcollide.append(collision)
+                if direction == Direction.up:
+                        collision.rect.bottom = entity.rect.top
+                if direction == Direction.left:
+                        collision.rect.right = entity.rect.left
+                if direction == Direction.down:
+                        collision.rect.top = entity.rect.bottom
+                if direction == Direction.left:
+                        collision.rect.left = entity.rect.right
+                if callable(getattr(collision, "push", None)):
+                    # noinspection PyUnresolvedReferences
+                    collision.push(direction)
     if nextcollide:
-        push(direction, *nextcollide)
+        push(direction, None, *nextcollide)
 
 
 # tile parent classes
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0):
+    def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0, weight=1):
         super().__init__()
         self.x = x
         self.y = y
+        self.weight = weight
         self.mask = None
         if convert_alpha:
             self.image = pygame.image.load(img).convert_alpha()
@@ -697,11 +700,63 @@ class Tile(pygame.sprite.Sprite):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
 
+    def coverededge(self, direction:Direction=None):
+        # this way it can be evaluated if direction is specified or iterated if not
+        if pygame.sprite.spritecollide(self, solidtiles, False):
+            return [True, True, True, True]
+
+        if direction is None:
+            coverededges = []
+
+            self.rect.y -= 1
+            coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.top < 0]))
+            self.rect.y += 1
+
+            self.rect.x -= 1
+            coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.left < 0]))
+            self.rect.x +=1
+
+            self.rect.y += 1
+            coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.bottom > height]))
+            self.rect.y -= 1
+
+            self.rect.x += 1
+            coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.right > width]))
+            self.rect.x -= 1
+
+            return coverededges
+
+        else:
+            covered = None
+
+            if direction == Direction.up:
+                self.rect.y -= 1
+                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.top < 0])
+                self.rect.y += 1
+            if direction == Direction.left:
+                self.rect.x -= 1
+                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.left < 0])
+                self.rect.x += 1
+            if direction == Direction.down:
+                self.rect.y += 1
+                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.bottom > height])
+                self.rect.y -= 1
+            if direction == Direction.right:
+                self.rect.x += 1
+                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.right > width])
+                self.rect.x -= 1
+
+            if covered is not None:
+                return covered
+
+            raise ValueError("Direction required as input")
+
 
 class TempObj(pygame.sprite.Sprite):
-    def __init__(self, img=None, x=0, y=0, convert_alpha=False):
+    def __init__(self, img=None, x=0, y=0, convert_alpha=False, weight=-1):
         super().__init__()
         if img is not None:
+            self.weight = weight
             if convert_alpha:
                 self.image = pygame.image.load(img).convert_alpha()
                 self.mask = pygame.mask.from_surface(self.image)
@@ -1024,19 +1079,27 @@ class Bullet(TempObj):
             if not mute:
                 hit.play()
         if charcollide:
-            self.kill()
             plat.die("shot", self)
+            self.kill()
 
 
 class Light(Tile):
+    corners, edges = shadowcasting.tiletopoly(pygame.sprite.Group([s for s in tiles if s not in lighttiles]))
+
     def __init__(self, x, y):
         super().__init__("assets/img/stealth/light.png", x, y)
 
     def update(self):
         selfpowered = power(self.rect)
 
-        for direction in selfpowered:
-            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, direction))
+        if Direction.up in selfpowered:
+            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.down))
+        if Direction.left in selfpowered:
+            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.right))
+        if Direction.down in selfpowered:
+            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.up))
+        if Direction.right in selfpowered:
+            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.left))
 
 
 class Lighting(TempObj):
@@ -1045,32 +1108,45 @@ class Lighting(TempObj):
         self.hostrect = hostrect
         self.rect = pygame.rect.Rect((self.hostrect.centerx, self.hostrect.centery, 1, 1))
         self.rect.center = self.hostrect.center
+        self.floatx = self.rect.x
+        self.floaty = self.rect.y
         self.direction = direction
         self.vector = None
         self.maxrotate = None
 
         if self.direction == Direction.up:
-            self.vector = pygame.math.Vector2(-1, 1).normalize()
-            self.maxrotate = pygame.math.Vector2(1, 1)
-        if self.direction == Direction.left:
             self.vector = pygame.math.Vector2(-1, -1).normalize()
-            self.maxrotate = pygame.math.Vector2(-1, 1)
-        if self.direction == Direction.down:
-            self.vector = pygame.math.Vector2(1, -1).normalize()
-            self.maxrotate = pygame.math.Vector2(-1, -1)
-        if self.direction == Direction.right:
-            self.vector = pygame.math.Vector2(1, 1).normalize()
             self.maxrotate = pygame.math.Vector2(1, -1)
+        if self.direction == Direction.left:
+            self.vector = pygame.math.Vector2(-1, 1).normalize()
+            self.maxrotate = pygame.math.Vector2(-1, -1)
+        if self.direction == Direction.down:
+            self.vector = pygame.math.Vector2(1, 1).normalize()
+            self.maxrotate = pygame.math.Vector2(-1, 1)
+        if self.direction == Direction.right:
+            self.vector = pygame.math.Vector2(1, -1).normalize()
+            self.maxrotate = pygame.math.Vector2(1, 1)
 
     def update(self):
         while self.vector.angle_to(self.maxrotate) != 0:
-            if pygame.sprite.spritecollide(self, solidtiles, False) and not self.rect.colliderect(self.hostrect):
-                self.rect -= self.vector
-                pygame.draw.line(shadowsurf, colors.LGRAY, self.hostrect.center, self.rect.center)
+            if (pygame.sprite.spritecollide(self, solidtiles, False) and not self.rect.colliderect(self.hostrect)) \
+                    or not 0 <= self.rect.centerx <= width or not 0 <= self.rect.centery <= height:
+                self.floatx -= self.vector.x
+                self.floaty -= self.vector.y
+                self.rect.topleft = self.floatx, self.floaty
+                pygame.draw.line(shadowsurf, colors.DGRAY, self.hostrect.center, self.rect.center)
                 self.rect.center = self.hostrect.center
+                self.floatx, self.floaty = self.rect.topleft
                 self.vector.rotate_ip(1)
+                print("b")
             else:
-                self.rect += self.vector
+                self.floatx += self.vector.x
+                self.floaty += self.vector.y
+                self.rect.topleft = self.floatx, self.floaty
+                print(self.rect.x, self.rect.y)
+            # print(self.rect)
+            # print(self.vector.angle_to(self.maxrotate))
+        print("done")
 
 
 
@@ -1165,7 +1241,7 @@ class PistonRod(Tile):
             self.rect.x = self.hostrect.x + self.distance
 
         if pygame.sprite.spritecollide(self, solidtiles, False):
-            push(self.direction, [self.hostrect, self.rect], self)
+            push(self.direction, [self.hostrect, self.rect], self, weight=self.weight)
 
 
 # refresh every frame
