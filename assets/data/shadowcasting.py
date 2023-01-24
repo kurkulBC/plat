@@ -1,10 +1,13 @@
 import pygame
 import math
 from statistics import linear_regression
+from typing import Iterator
 
 
-def tiletopoly(tiles: pygame.sprite.Group) -> list[list[tuple[int, int]],
-        list[tuple[tuple[int, int], tuple[int, int]]]]:
+Coord = tuple[int, int]
+
+def tiletopoly(tiles: pygame.sprite.Group) -> list[list[Coord],
+        list[tuple[Coord, Coord]]]:
     corners = []
     edges = []
     for tile in tiles:
@@ -31,7 +34,7 @@ def tiletopoly(tiles: pygame.sprite.Group) -> list[list[tuple[int, int]],
 
     return [corners, edges]
 
-def tiletocorners(tiles: pygame.sprite.Group) -> list[tuple[int, int]]:
+def tiletocorners(tiles: pygame.sprite.Group) -> list[Coord]:
     corners = []
     for tile in tiles:
         # noinspection PyUnresolvedReferences
@@ -49,7 +52,7 @@ def tiletocorners(tiles: pygame.sprite.Group) -> list[tuple[int, int]]:
 
     return corners
 
-def tiletoedges(tiles: pygame.sprite.Group) -> list[tuple[tuple[int, int], tuple[int, int]]]:
+def tiletoedges(tiles: pygame.sprite.Group) -> list[tuple[Coord, Coord]]:
     edges = []
     for tile in tiles:
         # noinspection PyUnresolvedReferences
@@ -66,7 +69,7 @@ def tiletoedges(tiles: pygame.sprite.Group) -> list[tuple[tuple[int, int], tuple
 
     return edges
 
-def segmentintersect(line1:tuple[tuple[int, int], tuple[int, int]], line2:tuple[tuple[int, int], tuple[int, int]]):
+def segmentintersect(line1:tuple[Coord, Coord], line2:tuple[Coord, Coord]):
     m1, b1 = linear_regression([s[0] for s in line1], [s[1] for s in line1])
     m2, b2 = linear_regression([s[0] for s in line2], [s[1] for s in line2])
     if m1 == m2:
@@ -83,17 +86,25 @@ def segmentintersect(line1:tuple[tuple[int, int], tuple[int, int]], line2:tuple[
     intersection = (int(x), int(y1))
 
     if intersection[0] < min(line1[0][0], line1[1][0]) or intersection[0] > max(line1[0][0], line1[1][0]):
-        print('exit 1')
+        print('outside of line1 x')
+        return False
+
+    if intersection[1] < min(line1[0][1], line1[1][1]) or intersection[1] > max(line1[0][1], line1[1][1]):
+        print('outside of line1 y')
         return False
 
     if intersection[0] < min(line2[0][0], line2[1][0]) or intersection[0] > max(line2[0][0], line2[1][0]):
-        print('outside of y')
+        print('outside of line2 x')
+        return False
+
+    if intersection[1] < min(line2[0][1], line2[1][1]) or intersection[1] > max(line2[0][1], line2[1][1]):
+        print('outside of line2 y')
         return False
 
     return intersection
 
-def visiblepoly(start: tuple[int, int], corners: list[tuple[int, int]],
-        edges: list[tuple[tuple[int, int], tuple[int, int]]]) -> list[tuple[int, int]]:
+def visiblepoly(start: tuple[int, int], corners: Iterator[tuple[int, int]],
+        edges: Iterator[tuple[tuple[int, int], tuple[int, int]]]) -> list[tuple[int, int]]:
     visible = []
     for corner in corners:
         for edge in edges:

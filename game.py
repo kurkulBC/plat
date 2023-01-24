@@ -491,25 +491,27 @@ class Demo(pygame.sprite.Sprite):
 def power(rect) -> list[Direction]:
     powered = []
 
-    rect.y -= 1
-    uppower = pygame.sprite.spritecollide(rect, rocktiles, False)
-    upblock = pygame.sprite.spritecollide(rect, doortiles, False)
-    rect.y += 1
+    tempsprite = Demo(rect)
 
-    rect.x -= 1
-    leftpower = pygame.sprite.spritecollide(rect, rocktiles, False)
-    leftblock = pygame.sprite.spritecollide(rect, doortiles, False)
-    rect.x += 1
+    tempsprite.rect.y -= 1
+    uppower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
+    upblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
+    tempsprite.rect.y += 1
 
-    rect.y += 1
-    downpower = pygame.sprite.spritecollide(rect, rocktiles, False)
-    downblock = pygame.sprite.spritecollide(rect, doortiles, False)
-    rect.y -= 1
+    tempsprite.rect.x -= 1
+    leftpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
+    leftblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
+    tempsprite.rect.x += 1
 
-    rect.x += 1
-    rightpower = pygame.sprite.spritecollide(rect, rocktiles, False)
-    rightblock = pygame.sprite.spritecollide(rect, doortiles, False)
-    rect.x -= 1
+    tempsprite.rect.y += 1
+    downpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
+    downblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
+    tempsprite.rect.y -= 1
+
+    tempsprite.rect.x += 1
+    rightpower = pygame.sprite.spritecollide(tempsprite, rocktiles, False)
+    rightblock = pygame.sprite.spritecollide(tempsprite, doortiles, False)
+    tempsprite.rect.x -= 1
 
     if len(uppower) > len(upblock):
         powered.append(Direction.up)
@@ -644,8 +646,7 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 def push(direction:Direction, saferects=None, *instigators:pygame.sprite.Sprite, weight=1):
     if direction not in Direction:
         raise ValueError("Direction required as input")
-    if not isinstance(saferects, list):
-        saferects = [saferects]
+    saferects = iter(saferects)
     nextcollide = []
     for entity in instigators:
         collisiongroup = pygame.sprite.Group([s for s in solidtiles if s != entity and s.rect not in saferects])
@@ -1468,9 +1469,9 @@ while run:
 
     if stealth:
         lights.fill(colors.DGRAY)
+        lightingtiles.update()
         lightingtiles.empty()
         lighttiles.update()
-        lightingtiles.update()
 
     # reset game window
 
