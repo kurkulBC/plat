@@ -19,7 +19,6 @@ screenheight = 1072
 width = 1024
 height = 1024
 zoom = 1
-animlive = False
 screenshake = [0, 0]
 shaketime = 0
 shakeintensity = [0, 0]
@@ -37,12 +36,9 @@ pygame.display.set_icon(pygame.image.load("assets/img/platterman.png"))
 clock = pygame.time.Clock()
 levelx = 0
 levely = 0
-cutscene = False
 invisiblespawn = False
-cutscenecount = 0
 glitcher = ImageGlitcher()
 glitchimg = pygame.image.load("assets/img/escape.png")
-animtime = 0
 
 # create tile groups
 spacetiles = pygame.sprite.Group()
@@ -82,7 +78,14 @@ shoot = pygame.mixer.Sound("assets/sfx/shoot.ogg")
 hit = pygame.mixer.Sound("assets/sfx/hit.ogg")
 shotkill = pygame.mixer.Sound("assets/sfx/shotkill.ogg")
 press = pygame.mixer.Sound("assets/sfx/press.ogg")
-animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch.ogg")
+
+animations = {
+    'cutscene': False,
+    'cutscenecount': 0,
+    'animtime': 0,
+    'animlive': False,
+    'animsound': pygame.mixer.Sound("assets/sfx/anims/anim1glitch.ogg"),
+}
 
 # load misc
 if hax.active:
@@ -268,7 +271,7 @@ class Player(pygame.sprite.Sprite):
 
         self.moving = False
 
-        if not cutscene:
+        if not animations['cutscene']:
             # key input
 
             if keys[pygame.K_p] and hax.active and hax.canfly:
@@ -536,86 +539,83 @@ def glitch(image):
 
 # anim system
 def animate():
-    global cutscene
-    global cutscenecount
-    global animtime
+    global animations
     global shadowsurf
     global zoom
-    global animlive
     global screenshake
     global screenrotation
     global mute
-    global animsound
 
-    if animlive:
-        if cutscenecount == 0:
+    if animations['animlive']:
+        if animations['cutscenecount'] == 0:
 
-            if animtime == 0:
+            if animations['animtime'] == 0:
                 plat.jumpheight = 1
                 plat.gravity = 1
                 plat.vel = 1
                 mute = True
-                animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch.ogg")
-            if 20 < animtime < 50:
+                animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch.ogg")
+            if 20 < animations['animtime'] < 50:
                 plat.moveleft()
-            if animtime == 55:
+            if animations['animtime'] == 55:
                 vortextiles.update(0)
                 shake(30, 5, 5, 1, 1)
-                animsound.play()
-                animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch2.ogg")
-            if 55 <= animtime < 60:
+                animations['animsound'].play()
+                animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch2.ogg")
+            if 55 <= animations['animtime'] < 60:
                 plat.acceleration = 2
                 plat.vel = 4
                 plat.moveup()
                 plat.moveright()
-            if 60 <= animtime < 90:
+            if 60 <= animations['animtime'] < 90:
                 plat.idle()
-            if 90 <= animtime < 240:
+            if 90 <= animations['animtime'] < 240:
                 vortextiles.update(0)
-                if animtime % 2 != 0:
-                    plat.rect.x -= int((animtime - 90) / 10)
-            if animtime == 110:
-                animsound.play()
-                animsound.play()
-                animsound.play()
-                animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch3.ogg")
-            if 110 <= animtime < 260:
-                screenrotation = (animtime - 109) * (90 / 150)
-            if 180 <= animtime < 260:
+                if animations['animtime'] % 2 != 0:
+                    plat.rect.x -= int((animations['animtime'] - 90) / 10)
+            if animations['animtime'] == 110:
+                animations['animsound'].play()
+                animations['animsound'].play()
+                animations['animsound'].play()
+                animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch3.ogg")
+            if 110 <= animations['animtime'] < 260:
+                screenrotation = (animations['animtime'] - 109) * (90 / 150)
+            if 180 <= animations['animtime'] < 260:
                 zoom += 4.5 / 80
-            if 110 <= animtime < 180:
+            if 110 <= animations['animtime'] < 180:
                 plat.moveup()
                 plat.moveright()
                 shadowsurf = pygame.Surface((width * 3, height * 3), pygame.SRCALPHA)
-                pygame.draw.rect(shadowsurf, (*colors.DPURPLE, (2 * animtime - 180)), shadowsurf.get_rect())
-                shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
-                screenrotation = (animtime - 109) * (90 / 130)
-            if 180 <= animtime < 300:
+                pygame.draw.rect(shadowsurf, (*colors.DPURPLE, (2 * animations['animtime'] - 180)),
+                                 shadowsurf.get_rect())
+                shake(1, int((animations['animtime'] - 100) / 10), int((animations['animtime'] - 100) / 10), 0, 0)
+                screenrotation = (animations['animtime'] - 109) * (90 / 130)
+            if 180 <= animations['animtime'] < 300:
                 pygame.draw.rect(shadowsurf, (*colors.DPURPLE, 2 * 180 - 180), shadowsurf.get_rect())
-                shake(1, int((animtime - 100) / 10), int((animtime - 100) / 10), 0, 0)
-            if animtime == 300:
-                animsound.play()
-                animsound = pygame.mixer.Sound("assets/sfx/anims/anim1glitch4.ogg")
-            if animtime == 360:
+                shake(1, int((animations['animtime'] - 100) / 10), int((animations['animtime'] - 100) / 10), 0, 0)
+            if animations['animtime'] == 300:
+                animations['animsound'].play()
+                animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch4.ogg")
+            if animations['animtime'] == 360:
                 vortextiles.update("assets/img/escape.png")
                 vortextiles.update("assets/img/spawn.png", 1)
                 shake(10, 5, 5, 0, 0)
                 shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
-                animsound.play()
-            if 420 <= animtime < 570:
+                animations['animsound'].play()
+            if 420 <= animations['animtime'] < 570:
                 zoom -= 15.5 / 150
-            if 420 <= animtime < 480:
+            if 420 <= animations['animtime'] < 480:
                 screenrotation -= 1.5
-            if animtime == 510:
+            if animations['animtime'] == 510:
                 mute = False
-            if animtime == 920:
-                animlive = False
+            if animations['animtime'] == 920:
+                animations['animlive'] = False
 
-        animtime += 1
+        animations['animtime'] += 1
 
     else:
-        cutscene = False
-        cutscenecount += 1
+        animations['cutscene'] = False
+        animations['cutscenecount'] += 1
         plat.baseaccel = 1
         plat.airaccel = 0.5
         plat.acceleration = 0
@@ -643,7 +643,7 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 
 # push things around
-def push(direction:Direction, saferects=None, *instigators:pygame.sprite.Sprite, weight=1):
+def push(direction: Direction, saferects=None, *instigators: pygame.sprite.Sprite, weight=1):
     if direction not in Direction:
         raise ValueError("Direction required as input")
     saferects = iter(saferects)
@@ -657,13 +657,13 @@ def push(direction:Direction, saferects=None, *instigators:pygame.sprite.Sprite,
                 if collision.weight > 0:
                     nextcollide.append(collision)
                 if direction == Direction.up:
-                        collision.rect.bottom = entity.rect.top
+                    collision.rect.bottom = entity.rect.top
                 if direction == Direction.left:
-                        collision.rect.right = entity.rect.left
+                    collision.rect.right = entity.rect.left
                 if direction == Direction.down:
-                        collision.rect.top = entity.rect.bottom
+                    collision.rect.top = entity.rect.bottom
                 if direction == Direction.left:
-                        collision.rect.left = entity.rect.right
+                    collision.rect.left = entity.rect.right
                 if callable(getattr(collision, "push", None)):
                     # noinspection PyUnresolvedReferences
                     collision.push(direction)
@@ -701,7 +701,7 @@ class Tile(pygame.sprite.Sprite):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
 
-    def coverededge(self, direction:Direction=None):
+    def coverededge(self, direction: Direction = None):
         # this way it can be evaluated if direction is specified or iterated if not
         if pygame.sprite.spritecollide(self, solidtiles, False):
             return [True, True, True, True]
@@ -715,7 +715,7 @@ class Tile(pygame.sprite.Sprite):
 
             self.rect.x -= 1
             coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.left < 0]))
-            self.rect.x +=1
+            self.rect.x += 1
 
             self.rect.y += 1
             coverededges.append(any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.bottom > height]))
@@ -1150,7 +1150,6 @@ class Lighting(TempObj):
         print("done")
 
 
-
 class Vortex(Tile):
     def __init__(self, x, y, ident, image, startimage):
         super().__init__(startimage, x, y)
@@ -1293,11 +1292,11 @@ while run:
     if plat.escaped is True:
         plat.escaped = False
         levelcount += 1
-        if not cutscene:
+        if not animations['cutscene']:
             currentlvl = levels[levelcount]
             leveltext = font1.render(f"Level {levelcount + 1} : {leveldescs[levelcount]}", False, colors.WHITE)
         else:
-            currentlvl = anims[cutscenecount]
+            currentlvl = anims[animations['cutscenecount']]
             leveltext = font1.render("", False, colors.WHITE)
 
         # clears old tile data
@@ -1432,17 +1431,17 @@ while run:
     if lavadeath := pygame.sprite.spritecollide(plat, lavatiles, False):
         plat.die("lava", lavadeath)
     if pygame.sprite.spritecollide(plat, esctiles, False):
-        cutscene = False
+        animations['cutscene'] = False
         invisiblespawn = False
         if levelcount == 4 - 1:
-            cutscene = True
+            animations['cutscene'] = True
             invisiblespawn = True
             zoom = 12
             plat.momentum = 0
             plat.vertforce = 0
-            animlive = True
+            animations['animlive'] = True
         plat.escaped = True
-    if cutscene:
+    if animations['cutscene']:
         animate()
 
     if shaketime > 0 and shakeintensity[0] > 0 and shakeintensity[1] > 0:
