@@ -5,7 +5,7 @@ from assets.data.lvldata import leveldescs as leveldescs
 from assets.data.lvldata import anims as anims
 import assets.data.colors as colors
 import assets.hax as hax
-from assets.data.common import Direction
+from assets.data.common import screenwidth, screenheight, width, height, size, Direction, Demo
 import random
 from glitch_this import ImageGlitcher
 import timeit
@@ -15,10 +15,6 @@ from assets.data import tilegroups
 # init ~1.7s
 pygame.init()
 hax.active = False
-screenwidth = 1072
-screenheight = 1072
-width = 1024
-height = 1024
 zoom = 1
 screenshake = [0, 0]
 shaketime = 0
@@ -30,7 +26,7 @@ framerate = 60
 
 screen = pygame.display.set_mode((screenwidth, screenheight), pygame.FULLSCREEN | pygame.SCALED)
 win = pygame.Surface((screenwidth, screenheight))
-shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
+shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.HWSURFACE | pygame.SRCALPHA)
 
 pygame.display.set_caption("Platman")
 pygame.display.set_icon(pygame.image.load("assets/img/platterman.png"))
@@ -91,7 +87,6 @@ if hax.active:
     levelcount = hax.startlevel - 2
 else:
     levelcount = 2
-size = 32
 currentlvl = [0]
 stealth = False
 
@@ -474,13 +469,6 @@ class Particle(object):
             particle['delay'] -= 1
 
 
-# dummy class for power()
-class Demo(pygame.sprite.Sprite):
-    def __init__(self, rect):
-        super().__init__()
-        self.rect = rect
-
-
 # surrounding check for a tile's connection to power
 def power(rect: pygame.rect.Rect) -> list[Direction]:
     powered = []
@@ -644,9 +632,10 @@ def push(direction: Direction, saferects=None, *instigators: pygame.sprite.Sprit
         collided = pygame.sprite.spritecollide(entity, collisiongroup, False)
         for collision in collided:
             # noinspection PyUnresolvedReferences
-            if hasattr(collision, "weight") and collision.weight <= weight or not hasattr(collision, "weight"):
+            if (hasattr(collision, "weight") and collision.weight <= weight) or not hasattr(collision, "weight"):
                 if collision.weight > 0:
                     nextcollide.append(collision)
+
                 if direction == Direction.up:
                     collision.rect.bottom = entity.rect.top
                 if direction == Direction.left:
@@ -698,35 +687,40 @@ class Tile(pygame.sprite.Sprite):
         tiles.add(self)
         if hasattr(tilegroups, self.__class__.__name__):
             try:
-                self.add(*[eval(s) for s in eval(f"tilegroups.{self.__class__.__name__}") if s in globals()])
+                self.add(*[eval(s) for s in eval(f"tilegroups.{self.__class__.__name__}")])
             except RuntimeError:
-                pass
+                raise RuntimeError(f"populategroups() didn't work for {self.__class__.__name__}")
         else:
             raise NotImplementedError(f"Class '{self.__class__.__name__}' not defined in tilegroups.py")
 
     def coverededge(self, direction: Direction = None):
         # this way it can be (evaluated if direction is specified else iterated)
         if pygame.sprite.spritecollide(self, [s for s in solidtiles if s != self], False):
-            return [True, True, True, True]
+            return {
+                'up': True,
+                'left': True,
+                'down': True,
+                'right': True,
+            }
 
         if direction is None:
-            coverededges = []
+            coverededges = {}
             tempgroup = [s for s in solidtiles if s != self]
 
             self.rect.y -= 1
-            coverededges.append(any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.top < 0]))
+            coverededges['up'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.top < 0])
             self.rect.y += 1
 
             self.rect.x -= 1
-            coverededges.append(any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.left < 0]))
+            coverededges['left'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.left < 0])
             self.rect.x += 1
 
             self.rect.y += 1
-            coverededges.append(any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.bottom > height]))
+            coverededges['down'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.bottom > height])
             self.rect.y -= 1
 
             self.rect.x += 1
-            coverededges.append(any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.right > width]))
+            coverededges['right'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.right > width])
             self.rect.x -= 1
 
             return coverededges
@@ -755,6 +749,55 @@ class Tile(pygame.sprite.Sprite):
                 return covered
 
             raise ValueError("Direction required as input")
+
+    def coveredcorner(self, coverededges=None):
+        if coverededges is None:
+            coverededges = [True, True, True, True]
+
+        tempgroup = [s for s in tiles if s not in solidtiles and s != self]
+        coveredcorners = {}
+
+        if coverededges['up'] and coverededges['left']:
+            self.rect.x -= 1
+            self.rect.y -= 1
+            coveredcorners['upleft'] = any([not pygame.sprite.spritecollide(self, tempgroup, False),
+                                            self.rect.top < 0, self.rect.left < 0])
+            self.rect.x += 1
+            self.rect.y += 1
+        else:
+            coveredcorners['upleft'] = False
+
+        if coverededges['left'] and coverededges['down']:
+            self.rect.x -= 1
+            self.rect.y += 1
+            coveredcorners['downleft'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
+                                               self.rect.bottom > height, self.rect.left < 0]))
+            self.rect.x += 1
+            self.rect.y -= 1
+        else:
+            coveredcorners['downleft'] = False
+
+        if coverededges['down'] and coverededges['right']:
+            self.rect.x += 1
+            self.rect.y += 1
+            coveredcorners['downright'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
+                                                self.rect.bottom > height, self.rect.right > width]))
+            self.rect.x -= 1
+            self.rect.y -= 1
+        else:
+            coveredcorners['downright'] = False
+
+        if coverededges['right'] and coverededges['up']:
+            self.rect.x += 1
+            self.rect.y -= 1
+            coveredcorners['upright'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
+                                              self.rect.top < 0, self.rect.right > width]))
+            self.rect.x -= 1
+            self.rect.y += 1
+        else:
+            coveredcorners['upright'] = False
+
+        return coveredcorners
 
 
 class TempObj(pygame.sprite.Sprite):
@@ -786,9 +829,34 @@ class TempObj(pygame.sprite.Sprite):
             raise NotImplementedError(f"Class '{self.__class__.__name__}' not defined in tilegroups.py")
 
     def coverededge(self):
-        if pygame.sprite.spritecollide(self, [s for s in solidtiles if s != self], False):
-            return [True, True, True, True]
-        return [False, False, False, False]
+        if hasattr(self, 'rect') and pygame.sprite.spritecollide(self, [s for s in solidtiles if s != self], False):
+            return {
+                'up': True,
+                'left': True,
+                'down': True,
+                'right': True,
+            }
+        return {
+            'up': False,
+            'left': False,
+            'down': False,
+            'right': False,
+        }
+
+    def coveredcorner(self, dummyval=None):
+        if hasattr(self, 'rect') and dummyval is None:
+            return {
+                'upleft': True,
+                'downleft': True,
+                'downright': True,
+                'upright': True,
+            }
+        return {
+            'upleft': True,
+            'downleft': True,
+            'downright': True,
+            'upright': True,
+        }
 
 
 # tile types
@@ -1014,7 +1082,6 @@ class Door(Tile):
     def __init__(self, x, y, ident):
         super().__init__("assets/img/door.png", x, y, True)
         self.ident = ident
-        print(self.mask.get_rect(), self.rect)
 
     def update(self, ident=-1):
         if not plat.alive:
@@ -1088,6 +1155,7 @@ class Bullet(TempObj):
     def update(self):
         if not plat.alive:
             self.kill()
+            return
 
         if not self.set:
             self.populategroups()
@@ -1114,7 +1182,7 @@ class Bullet(TempObj):
 
 
 class Light(Tile):
-    polycache: list[list[shca.Coord], list[shca.Line]] = None
+    polycache: list[list[shca.Coord], list[shca.Line]]
 
     def __init__(self, x, y):
         super().__init__("assets/img/stealth/light.png", x, y)
@@ -1145,46 +1213,84 @@ class Lighting(TempObj):
         self.start: pygame.math.Vector2 = pygame.math.Vector2(0, 0)
         self.end: pygame.math.Vector2 = pygame.math.Vector2(0, 0)
         self.polycache = list[list[shca.Coord], list[shca.Line]]
-        self.visiblepolycache: list[shca.Coord] = []
+        self.visiblepolycache: list[list[shca.Coord], list[shca.Line]] = []
+
+    def sortcoords(self, a: shca.Coord, b: shca.Coord):
+        if self.direction == Direction.up or self.direction == Direction.down:
+            if a[0] > b[0]:
+                return 1
+            if a[0] == b[0]:
+                return 0
+            else:
+                return -1
+        else:
+            if a[1] > b[1]:
+                return 1
+            if a[1] == b[1]:
+                return 0
+            else:
+                return -1
 
     def fillpolycaches(self):
-        self.polycache = [[s for s in Light.polycache[0] if not
-                           (self.hostrect.left - 1 <= s[0] <= self.hostrect.right + 1 and
-                           self.hostrect.top - 1 <= s[1] <= self.hostrect.bottom + 1)],
+        self.polycache = [[s for s in Light.polycache[0] if not (
+                self.hostrect.left - 1 <= s[0] <= self.hostrect.right + 1 and
+                self.hostrect.top - 1 <= s[1] <= self.hostrect.bottom + 1)],
 
-                          [s for s in Light.polycache[1] if
-                           not (self.hostrect.left <= s[0][0] <= self.hostrect.right and
-                                self.hostrect.top <= s[0][1] <= self.hostrect.bottom and
-                                self.hostrect.left <= s[1][0] <= self.hostrect.right and
-                                self.hostrect.top <= s[1][1] <= self.hostrect.bottom)]]
-        self.visiblepolycache = shca.visiblepoly(self.rect.center, self.polycache[0], self.polycache[1], self.direction)
+                          [s for s in Light.polycache[1] if not (
+                                  self.hostrect.left <= s[0][0] <= self.hostrect.right and
+                                  self.hostrect.top <= s[0][1] <= self.hostrect.bottom and
+                                  self.hostrect.left <= s[1][0] <= self.hostrect.right and
+                                  self.hostrect.top <= s[1][1] <= self.hostrect.bottom)]]
+        self.visiblepolycache = [
+            shca.rayvisiblecorners(solidtiles, self.hostrect, self.hostrect.center,
+                                   self.polycache[0], self.polycache[1], self.direction),
+        ]
+        self.visiblepolycache.append(shca.visibleedges(self.hostrect.center, self.visiblepolycache[0]))
+        # self.visiblepolycache.sort(key=lambda s: s[0]
+        #                            if self.direction == Direction.up or self.direction == Direction.down else s[1])
 
     def update(self):
         if not plat.alive:
             self.kill()
             return
-        if self.rect.center != self.hostrect.center:
+        if self.hostrect.center != self.hostrect.center:
             self.kill()
             return
 
         self.fillpolycaches()
 
         if self.direction == Direction.up:
-            self.start = pygame.math.Vector2(-1, -1).normalize()
+            self.start = pygame.math.Vector2(-1, -1)
             self.end = pygame.math.Vector2(1, -1)
         if self.direction == Direction.left:
-            self.start = pygame.math.Vector2(-1, 1).normalize()
+            self.start = pygame.math.Vector2(-1, 1)
             self.end = pygame.math.Vector2(-1, -1)
         if self.direction == Direction.down:
-            self.start = pygame.math.Vector2(1, 1).normalize()
+            self.start = pygame.math.Vector2(1, 1)
             self.end = pygame.math.Vector2(-1, 1)
         if self.direction == Direction.right:
-            self.start = pygame.math.Vector2(1, -1).normalize()
+            self.start = pygame.math.Vector2(1, -1)
             self.end = pygame.math.Vector2(1, 1)
 
-        for corner in self.visiblepolycache:
-            pygame.draw.line(shadowsurf, colors.LGRAY, self.rect.center, corner)
+        # validtiles = [s for s in solidtiles if s.rect != self.hostrect]
+        for corner in self.visiblepolycache[0]:
+            pygame.draw.line(shadowsurf, colors.BLACK, self.hostrect.center, corner)
 
+            # vec = (pygame.math.Vector2(corner) - pygame.math.Vector2(self.hostrect.center)).normalize()
+            # floatpos = list(self.rect.center) + vec
+            # self.rect.center = floatpos
+            # while not pygame.sprite.spritecollideany(self, validtiles) and \
+            #         0 <= floatpos[0] <= width and 0 <= floatpos[1] <= height:
+            #     floatpos += vec
+            #     self.rect.center = floatpos
+            # pygame.draw.line(shadowsurf, colors.BLACK, self.hostrect.center, floatpos - vec)
+            # self.rect.center = self.hostrect.center
+
+        for line in self.visiblepolycache[1]:
+            # pygame.draw.line(shadowsurf, colors.LGRAY, *line, 2)
+            pygame.draw.polygon(shadowsurf, colors.BLACK, (*line, self.hostrect.center))
+
+        pygame.draw.rect(shadowsurf, colors.DGRAY, self.hostrect)
         # while self.start.angle_to(self.end) != 0:
         #     if (pygame.sprite.spritecollide(self, solidtiles, False) and not self.rect.colliderect(self.hostrect)) \
         #             or not 0 <= self.rect.centerx <= width or not 0 <= self.rect.centery <= height:
@@ -1320,6 +1426,13 @@ def redrawgamewindow():
     if lighttiles:
         # blend_rgba takes up A LOT of time (~23ms PER CALL)
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+        for sprite in lightingtiles:
+            for coord in sprite.visiblepolycache[0]:
+                pygame.draw.circle(win, colors.RED, coord, 1)
+        #     for coord in Light.polycache[0]:
+        #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
+        # for coord in Light.polycache[0]:
+        #     pygame.draw.circle(win, colors.RED, coord, 1)
     # ~1ms
     pygame.display.flip()
 
