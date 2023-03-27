@@ -102,13 +102,13 @@ class Player(pygame.sprite.Sprite):
         self.airdeaccel = 0.5
         self.acceleration = 0
         self.vel = 10
-        self.turnrate = 4
+        self.turnrate = 8
         self.transportmomentum = 0
         self.moving = False
         self.alive = True
         self.vertforce = 0
         self.gravity = 1.25
-        self.jumpheight = 18
+        self.jumpheight = 24
         self.tvel = 30
         self.jumping = False
         self.minjump = 2
@@ -138,7 +138,7 @@ class Player(pygame.sprite.Sprite):
         if grounded or self.rect.bottom >= height:
             if not self.grounded:
                 self.grounded = True
-                self.momentum /= 4
+                self.momentum *= 2/3
                 # this line doesn't work because vertforce is always 0 at this point
                 # self.momentum /= (abs(self.vertforce + 1) / self.tvel) ** 2 * self.vel
 
@@ -645,7 +645,6 @@ def push(direction: Direction, saferects=None, *instigators: pygame.sprite.Sprit
                 if direction == Direction.left:
                     collision.rect.left = entity.rect.right
                 if callable(getattr(collision, "push", None)):
-                    # noinspection PyUnresolvedReferences
                     collision.push(direction)
     if nextcollide:
         push(direction, None, *nextcollide)
@@ -682,6 +681,9 @@ class Tile(pygame.sprite.Sprite):
         if not plat.alive:
             self.rect.x, self.rect.y = self.x, self.y
             return
+
+    def push(self, direction: Direction):
+        pass
 
     def populategroups(self):
         tiles.add(self)
@@ -1186,19 +1188,48 @@ class Light(Tile):
 
     def __init__(self, x, y):
         super().__init__("assets/img/stealth/light.png", x, y)
+        self.lighting: list[Lighting, Lighting, Lighting, Lighting] = [None, None, None, None]
+
+    def push(self, direction: Direction):
+        for lighting in self.lighting:
+            lighting.kill()
+        self.lighting = [None, None, None, None]
 
     def update(self):
+        if not plat.alive:
+            self.rect.x, self.rect.y = self.x, self.y
+            return
+
         Light.polycache = shca.tiletopoly(solidtiles)
         powered = power(self.rect)
 
         if Direction.up in powered:
-            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.down))
+            self.lighting[0] = Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.down)
+            lightingtiles.add(self.lighting[0])
+        elif self.lighting[0]:
+            self.lighting[0].kill()
+            self.lighting[0] = None
+
         if Direction.left in powered:
-            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.right))
+            self.lighting[1] = Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.right)
+            lightingtiles.add(self.lighting[1])
+        elif self.lighting[1]:
+            self.lighting[1].kill()
+            self.lighting[1] = None
+
         if Direction.down in powered:
-            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.up))
+            self.lighting[2] = Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.up)
+            lightingtiles.add(self.lighting[2])
+        elif self.lighting[2]:
+            self.lighting[2].kill()
+            self.lighting[2] = None
+
         if Direction.right in powered:
-            lightingtiles.add(Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.left))
+            self.lighting[3] = Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.left)
+            lightingtiles.add(self.lighting[3])
+        elif self.lighting[3]:
+            self.lighting[3].kill()
+            self.lighting[3] = None
 
 
 class Lighting(TempObj):
@@ -1207,27 +1238,9 @@ class Lighting(TempObj):
         self.hostrect = hostrect
         self.rect = pygame.rect.Rect((self.hostrect.centerx, self.hostrect.centery, 1, 1))
         self.rect.center = self.hostrect.center
-        self.floatx = self.rect.x
-        self.floaty = self.rect.y
         self.direction = direction
         self.polycache = list[list[shca.Coord], list[shca.Line]]
         self.visiblepolycache: list[list[shca.Coord], list[shca.Line]] = []
-
-    def sortcoords(self, a: shca.Coord, b: shca.Coord):
-        if self.direction == Direction.up or self.direction == Direction.down:
-            if a[0] > b[0]:
-                return 1
-            if a[0] == b[0]:
-                return 0
-            else:
-                return -1
-        else:
-            if a[1] > b[1]:
-                return 1
-            if a[1] == b[1]:
-                return 0
-            else:
-                return -1
 
     def fillpolycaches(self):
         self.polycache = [[s for s in Light.polycache[0] if not (
@@ -1247,11 +1260,7 @@ class Lighting(TempObj):
 
     def update(self):
         if not plat.alive:
-            self.kill()
-            return
-        if self.hostrect.center != self.hostrect.center:
-            self.kill()
-            return
+            pass
 
         self.fillpolycaches()
 
@@ -1533,8 +1542,6 @@ while run:
 
         if spawn is None:
             raise "Error: No spawn found"
-        if lighttiles:
-            stealth = True
 
         spritesbg.add(spacetiles, lavatiles, circuittiles)
         sprites.add(blocktiles, spawn, esctiles, rocktiles, turrettiles, lighttiles, pistonrodtiles)
@@ -1546,6 +1553,12 @@ while run:
         tiles.add(spritesbg, sprites, sprites2)
         Elev.collidetiles.add([s for s in tiles if s not in circuittiles])
 
+        if lighttiles:
+            stealth = True
+            shadowsurf.fill(colors.DGRAY)
+            Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
+            lighttiles.update()
+            lightingtiles.update()
         if stealth:
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
 
@@ -1588,13 +1601,6 @@ while run:
     pistontiles.update()
     projectiles.update()
     plat.move()
-
-    if stealth:
-        lightingtiles.empty()
-        shadowsurf.fill(colors.DGRAY)
-
-        lighttiles.update()
-        lightingtiles.update()
 
     # reset game window
 

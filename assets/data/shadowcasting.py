@@ -215,7 +215,6 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
             floatpos[1] = floor(floatpos[1])
         floatpos = tuple(floatpos)
         held.append(floatpos)
-        print(floatpos)
         tempsprite.rect.center = hostrect.center
     # print(corners)
     return corners + held
