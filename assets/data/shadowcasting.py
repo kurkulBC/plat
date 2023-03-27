@@ -168,10 +168,21 @@ def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line]
     return visible
 
 
-# TODO: new corners rounding improperly (ex: 32.0 instead of 33.0)
 def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, start: Coord, corners: Iterator[Coord],
                       edges: Iterator[Line], direction: Direction = None) -> list[Coord]:
     corners = visiblecorners(start, corners, edges, direction)
+    if direction == Direction.up:
+        corners.append(hostrect.topright)
+        corners.append(hostrect.topleft)
+    if direction == Direction.left:
+        corners.append(hostrect.topleft)
+        corners.append(hostrect.bottomleft)
+    if direction == Direction.down:
+        corners.append(hostrect.bottomleft)
+        corners.append(hostrect.bottomright)
+    if direction == Direction.right:
+        corners.append(hostrect.bottomright)
+        corners.append(hostrect.topright)
     held = []
     validtiles = [s for s in tiles if s.rect != hostrect]
     for corner in corners:
@@ -182,12 +193,18 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
         while not pygame.sprite.spritecollideany(tempsprite, validtiles) and \
                 0 <= floatpos[0] <= width and 0 <= floatpos[1] <= height:
             floatpos += vec
-            tempsprite.rect.center = [round(s) for s in floatpos]
+            if vec.x < 0:
+                tempsprite.rect.centerx = floor(floatpos[0])
+            if vec.x > 0:
+                tempsprite.rect.centerx = ceil(floatpos[0])
+            if vec.y < 0:
+                tempsprite.rect.centery = floor(floatpos[1])
+            if vec.y > 0:
+                tempsprite.rect.centery = ceil(floatpos[1])
+            # tempsprite.rect.center = floatpos
 
         # if lower than intersection, round higher, else lower
-        print(floatpos)
         floatpos -= vec
-        print(floatpos)
         if vec.x < 0:
             floatpos[0] = ceil(floatpos[0])
         if vec.x > 0:
@@ -200,21 +217,22 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
         held.append(floatpos)
         print(floatpos)
         tempsprite.rect.center = hostrect.center
-    print(corners)
+    # print(corners)
     return corners + held
 
 
-def visibleedges(start: Coord, viscorners: list[Coord]) -> list[Line]:
+def visibleedges(viscorners: list[Coord]) -> list[Line]:
     visible = []
     for i in range(0, len(viscorners)):
         for j in range(i + 1, len(viscorners)):
             a, b = viscorners[i], viscorners[j]
             if a[0] == b[0] and abs(a[1] - b[1]) <= size + 2 or a[1] == b[1] and abs(a[0] - b[0]) <= size + 2:
-                for corner in viscorners:
-                    if (pos := segmentintersect((a, b), (start, corner))) and pos not in (a, b):
-                        # print(pos, a, b)
-                        break
-                else:
-                    visible.append((a, b))
+                # for corner in viscorners:
+                #     # XTODO: when 2 lines are the same over a point the edge is not saved
+                #     if (pos := segmentintersect((a, b), (start, corner))) and pos not in (a, b):
+                #         print(pos, a, b)
+                #         break
+                # else:
+                visible.append((a, b))
 
     return visible

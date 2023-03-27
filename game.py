@@ -1210,8 +1210,6 @@ class Lighting(TempObj):
         self.floatx = self.rect.x
         self.floaty = self.rect.y
         self.direction = direction
-        self.start: pygame.math.Vector2 = pygame.math.Vector2(0, 0)
-        self.end: pygame.math.Vector2 = pygame.math.Vector2(0, 0)
         self.polycache = list[list[shca.Coord], list[shca.Line]]
         self.visiblepolycache: list[list[shca.Coord], list[shca.Line]] = []
 
@@ -1245,9 +1243,7 @@ class Lighting(TempObj):
             shca.rayvisiblecorners(solidtiles, self.hostrect, self.hostrect.center,
                                    self.polycache[0], self.polycache[1], self.direction),
         ]
-        self.visiblepolycache.append(shca.visibleedges(self.hostrect.center, self.visiblepolycache[0]))
-        # self.visiblepolycache.sort(key=lambda s: s[0]
-        #                            if self.direction == Direction.up or self.direction == Direction.down else s[1])
+        self.visiblepolycache.append(shca.visibleedges(self.visiblepolycache[0]))
 
     def update(self):
         if not plat.alive:
@@ -1259,56 +1255,14 @@ class Lighting(TempObj):
 
         self.fillpolycaches()
 
-        if self.direction == Direction.up:
-            self.start = pygame.math.Vector2(-1, -1)
-            self.end = pygame.math.Vector2(1, -1)
-        if self.direction == Direction.left:
-            self.start = pygame.math.Vector2(-1, 1)
-            self.end = pygame.math.Vector2(-1, -1)
-        if self.direction == Direction.down:
-            self.start = pygame.math.Vector2(1, 1)
-            self.end = pygame.math.Vector2(-1, 1)
-        if self.direction == Direction.right:
-            self.start = pygame.math.Vector2(1, -1)
-            self.end = pygame.math.Vector2(1, 1)
-
-        # validtiles = [s for s in solidtiles if s.rect != self.hostrect]
         for corner in self.visiblepolycache[0]:
             pygame.draw.line(shadowsurf, colors.BLACK, self.hostrect.center, corner)
-
-            # vec = (pygame.math.Vector2(corner) - pygame.math.Vector2(self.hostrect.center)).normalize()
-            # floatpos = list(self.rect.center) + vec
-            # self.rect.center = floatpos
-            # while not pygame.sprite.spritecollideany(self, validtiles) and \
-            #         0 <= floatpos[0] <= width and 0 <= floatpos[1] <= height:
-            #     floatpos += vec
-            #     self.rect.center = floatpos
-            # pygame.draw.line(shadowsurf, colors.BLACK, self.hostrect.center, floatpos - vec)
-            # self.rect.center = self.hostrect.center
 
         for line in self.visiblepolycache[1]:
             # pygame.draw.line(shadowsurf, colors.LGRAY, *line, 2)
             pygame.draw.polygon(shadowsurf, colors.BLACK, (*line, self.hostrect.center))
 
         pygame.draw.rect(shadowsurf, colors.DGRAY, self.hostrect)
-        # while self.start.angle_to(self.end) != 0:
-        #     if (pygame.sprite.spritecollide(self, solidtiles, False) and not self.rect.colliderect(self.hostrect)) \
-        #             or not 0 <= self.rect.centerx <= width or not 0 <= self.rect.centery <= height:
-        #         self.floatx -= self.start.x
-        #         self.floaty -= self.start.y
-        #         self.rect.topleft = self.floatx, self.floaty
-        #         pygame.draw.line(shadowsurf, colors.DGRAY, self.hostrect.center, self.rect.center)
-        #         self.rect.center = self.hostrect.center
-        #         self.floatx, self.floaty = self.rect.topleft
-        #         self.start.rotate_ip(1)
-        #         print("b")
-        #     else:
-        #         self.floatx += self.start.x
-        #         self.floaty += self.start.y
-        #         self.rect.topleft = self.floatx, self.floaty
-        #         print(self.rect.x, self.rect.y)
-        # print(self.rect)
-        # print(self.vector.angle_to(self.maxrotate))
 
 
 class Vortex(Tile):
