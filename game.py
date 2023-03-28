@@ -67,12 +67,14 @@ tiles = pygame.sprite.Group()
 
 # load sound
 ost = pygame.mixer.music
-crush = pygame.mixer.Sound("assets/sfx/crush.ogg")
-melt = pygame.mixer.Sound("assets/sfx/melt.ogg")
-shoot = pygame.mixer.Sound("assets/sfx/shoot.ogg")
-hit = pygame.mixer.Sound("assets/sfx/hit.ogg")
-shotkill = pygame.mixer.Sound("assets/sfx/shotkill.ogg")
-press = pygame.mixer.Sound("assets/sfx/press.ogg")
+sfx = {
+    'crush': pygame.mixer.Sound("assets/sfx/crush.ogg"),
+    'melt': pygame.mixer.Sound("assets/sfx/melt.ogg"),
+    'shoot': pygame.mixer.Sound("assets/sfx/shoot.ogg"),
+    'hit': pygame.mixer.Sound("assets/sfx/hit.ogg"),
+    'shotkill': pygame.mixer.Sound("assets/sfx/shotkill.ogg"),
+    'press': pygame.mixer.Sound("assets/sfx/press.ogg")
+}
 
 animations = {
     'cutscene': False,
@@ -361,7 +363,7 @@ class Player(pygame.sprite.Sprite):
         if len(collidedtiles) > 0:
             if not hax.active or not hax.noclip:
                 if not mute:
-                    crush.play()
+                    sfx['crush'].play()
                 self.die("crushed", collidedtiles)
 
     # call this method to kill the player
@@ -380,11 +382,11 @@ class Player(pygame.sprite.Sprite):
                                     mass=random.randint(16, 20),
                                     decay=0.75, gravity=0, color=(190, 195, 199))
                 if not mute:
-                    shotkill.play()
+                    sfx['shotkill'].play()
             if cause == "lava":
                 shake(45, 2, 2, 0, 0)
                 if not mute:
-                    melt.play()
+                    sfx['melt'].play()
             if cause == "crushed":
                 shake()
                 for i in range(16):
@@ -648,6 +650,12 @@ def push(direction: Direction, saferects=None, *instigators: pygame.sprite.Sprit
                     collision.push(direction)
     if nextcollide:
         push(direction, None, *nextcollide)
+
+
+def boundscheck(rect: pygame.rect.Rect) -> bool:
+    if rect.left < 0 or rect.right > width or rect.top < 0 or rect.right > height:
+        return False
+    return True
 
 
 # tile parent classes
@@ -1064,7 +1072,7 @@ class Switch(Tile):
         if pygame.sprite.collide_mask(self, plat):
             if not self.pressed:
                 self.pressed = True
-                press.play()
+                sfx['press'].play()
                 self.image = pygame.image.load("assets/img/switch2.png").convert_alpha()
                 self.mask = pygame.mask.from_surface(self.image)
                 doortiles.update(self.ident)
@@ -1143,7 +1151,7 @@ class Turret(Tile):
                                                Direction.left))
                     self.cooldown = self.firerate
                     if not mute:
-                        shoot.play()
+                        sfx['shoot'].play()
 
 
 class Bullet(TempObj):
@@ -1174,10 +1182,10 @@ class Bullet(TempObj):
 
         collide = pygame.sprite.spritecollide(self, [s for s in solidtiles if s != self], False)
         charcollide = pygame.sprite.collide_rect(self, plat)
-        if collide or self.rect.left < 0 or self.rect.right > width or self.rect.top < 0 or self.rect.bottom > height:
+        if collide or boundscheck(self.rect):
             self.kill()
             if not mute:
-                hit.play()
+                sfx['hit'].play()
         if charcollide:
             plat.die("shot", self)
             self.kill()
