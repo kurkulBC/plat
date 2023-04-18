@@ -49,6 +49,9 @@ while run:
             savedpixels.append(11)
         if data == (100, 100, 100):
             savedpixels.append([13, 0])
+
+        if data == (0, 255, 255):
+            savedpixels.append([4, 0])
     if newline:
         newline = False
         posx = 0

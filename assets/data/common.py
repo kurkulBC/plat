@@ -15,6 +15,11 @@ class Direction(Enum):
     down = auto()
     right = auto()
 
+    upleft = auto()
+    downleft = auto()
+    downright = auto()
+    upright = auto()
+
 
 # dummy class
 class Demo(pygame.sprite.Sprite):

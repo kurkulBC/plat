@@ -8,13 +8,15 @@ color codes:
     escape - 0, 0, 255
     elevator - 255, 0, 255
     circuit - 255, 128, 255
-    switch - 255, 128, 128 [x]
-    door - 128, 60, 60 [x, y(0-0-?)locked tile]
+    switch - 255, 128, 128 [id]
+    door - 128, 60, 60 [id, (0-0-?)locked tile]
     hotrock - 128, 0, 0
-    turret - 255, 0, 128 [z(0-60-128)firerate]
+    turret - 255, 0, 128 [(0-60-128)firerate]
     light - 192, 192, 192
     vortex - N/A
-    piston - 100, 100, 100 [z(0-0-3)rotation]
+    piston - 100, 100, 100 [(0-0-3)rotation]
+
+    diamond - 0, 255, 255
 
     (x is ID, y is special attribute)
     value range format: (minval-defaultval-maxval)
@@ -35,6 +37,10 @@ tile codes:
     light - 11
     vortex - 12
     piston - 13
+    guard - 14
+
+alt:
+    diamond: [4, 0]
 
 multiple spawns are not supported
 

@@ -141,24 +141,8 @@ def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line]
         -> list[Coord]:
     visible = []
     for corner in corners:
-        vec = pygame.math.Vector2(corner) - pygame.math.Vector2(start)
-        # print(vec.normalize(), vec.angle_to(pygame.math.Vector2(-1, -1)), vec.angle_to(pygame.math.Vector2(1, -1)))
-        if direction == Direction.up:
-            if abs(vec.angle_to(pygame.math.Vector2(-1, -1))) > 90 or \
-                    abs(vec.angle_to(pygame.math.Vector2(1, -1))) > 90:
-                continue
-        if direction == Direction.left:
-            if 45 < abs(vec.angle_to(pygame.math.Vector2(-1, 1))) < 270 or \
-                    45 < abs(vec.angle_to(pygame.math.Vector2(-1, -1))) < 270:
-                continue
-        if direction == Direction.down:
-            if abs(vec.angle_to(pygame.math.Vector2(1, 1))) > 90 or \
-                    abs(vec.angle_to(pygame.math.Vector2(-1, 1))) > 90:
-                continue
-        if direction == Direction.right:
-            if abs(vec.angle_to(pygame.math.Vector2(1, -1))) > 90 or \
-                    abs(vec.angle_to(pygame.math.Vector2(1, 1))) > 90:
-                continue
+        if not checkvisible(start, corner, direction):
+            continue
 
         for edge in edges:
             if segmentintersect((start, corner), edge):
@@ -205,14 +189,15 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
 
         # if lower than intersection, round higher, else lower
         floatpos -= vec
+        # i set the positives to ceil because they didn't work otherwise
         if vec.x < 0:
             floatpos[0] = ceil(floatpos[0])
         if vec.x > 0:
-            floatpos[0] = floor(floatpos[0])
+            floatpos[0] = ceil(floatpos[0])
         if vec.y < 0:
             floatpos[1] = ceil(floatpos[1])
         if vec.y > 0:
-            floatpos[1] = floor(floatpos[1])
+            floatpos[1] = ceil(floatpos[1])
         floatpos = tuple(floatpos)
         held.append(floatpos)
         tempsprite.rect.center = hostrect.center
@@ -235,3 +220,53 @@ def visibleedges(viscorners: list[Coord]) -> list[Line]:
                 visible.append((a, b))
 
     return visible
+
+
+def checkvisible(start: Coord, end: Coord, *directions: Direction) -> bool:
+    up = pygame.math.Vector2(0, -1)
+    left = pygame.math.Vector2(-1, 0)
+    down = pygame.math.Vector2(0, 1)
+    right = pygame.math.Vector2(1, 0)
+
+    upleft = pygame.math.Vector2(-1, -1)
+    downleft = pygame.math.Vector2(-1, 1)
+    downright = pygame.math.Vector2(1, 1)
+    upright = pygame.math.Vector2(1, -1)
+
+    vec = pygame.math.Vector2(end) - pygame.math.Vector2(start)
+
+    if Direction.up in directions:
+        if abs(vec.angle_to(upleft)) > 91 or \
+                abs(vec.angle_to(upright)) > 91:
+            return False
+    if Direction.left in directions:
+        if 46 < abs(vec.angle_to(downleft)) < 269 or \
+                46 < abs(vec.angle_to(upleft)) < 269:
+            return False
+    if Direction.down in directions:
+        if abs(vec.angle_to(downright)) > 91 or \
+                abs(vec.angle_to(downleft)) > 91:
+            return False
+    if Direction.right in directions:
+        if abs(vec.angle_to(upright)) > 91 or \
+                abs(vec.angle_to(downright)) > 91:
+            return False
+
+    if Direction.upleft in directions:
+        if abs(vec.angle_to(up)) > 91 or \
+                abs(vec.angle_to(left)) > 91:
+            return False
+    if Direction.downleft in directions:
+        if abs(vec.angle_to(left)) > 91 or \
+                91 < abs(vec.angle_to(down)) < 269:
+            return False
+    if Direction.downright in directions:
+        if 91 < abs(vec.angle_to(down)) < 269 or \
+                abs(vec.angle_to(right)) > 91:
+            return False
+    if Direction.upright in directions:
+        if abs(vec.angle_to(right)) > 91 or \
+                abs(vec.angle_to(up)) > 91:
+            return False
+
+    return True

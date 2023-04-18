@@ -11,6 +11,7 @@ from glitch_this import ImageGlitcher
 import timeit
 from assets.data import shadowcasting as shca
 from assets.data import tilegroups
+from math import dist
 
 # init ~1.7s
 pygame.init()
@@ -33,6 +34,7 @@ pygame.display.set_icon(pygame.image.load("assets/img/platterman.png"))
 clock = pygame.time.Clock()
 levelx = 0
 levely = 0
+spawn = None
 invisiblespawn = False
 glitcher = ImageGlitcher()
 glitchimg = pygame.image.load("assets/img/escape.png")
@@ -54,6 +56,7 @@ lightingtiles = pygame.sprite.Group()
 vortextiles = pygame.sprite.Group()
 pistontiles = pygame.sprite.Group()
 pistonrodtiles = pygame.sprite.Group()
+glasstiles = pygame.sprite.Group()
 
 # create special groups
 spritesbg = pygame.sprite.Group()
@@ -64,6 +67,8 @@ projectiles = pygame.sprite.Group()
 collidetiles = pygame.sprite.Group()
 solidtiles = pygame.sprite.Group()
 tiles = pygame.sprite.Group()
+
+guards = pygame.sprite.Group()
 
 # load sound
 ost = pygame.mixer.music
@@ -88,7 +93,7 @@ animations = {
 if hax.active:
     levelcount = hax.startlevel - 2
 else:
-    levelcount = 2
+    levelcount = 3
 currentlvl = [0]
 stealth = False
 
@@ -140,7 +145,7 @@ class Player(pygame.sprite.Sprite):
         if grounded or self.rect.bottom >= height:
             if not self.grounded:
                 self.grounded = True
-                self.momentum *= 2/3
+                self.momentum *= 2 / 3
                 # this line doesn't work because vertforce is always 0 at this point
                 # self.momentum /= (abs(self.vertforce + 1) / self.tvel) ** 2 * self.vel
 
@@ -397,9 +402,15 @@ class Player(pygame.sprite.Sprite):
             self.alive = False
             tiles.update()
             projectiles.update()
+            guards.update()
             self.rect.x = spawn.x + size / 4
             self.rect.y = spawn.y + size / 2
             self.alive = True
+
+    def shaded(self):
+        if stealth and shadowsurf.get_at(self.rect.center) != (0, 0, 0, 255):
+            return True
+        return False
 
 
 # particle system
@@ -665,6 +676,7 @@ class Tile(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.weight = weight
+        self.shaded = False
         self.image = None
         self.mask = None
         if convert_alpha:
@@ -809,6 +821,11 @@ class Tile(pygame.sprite.Sprite):
 
         return coveredcorners
 
+    def shaded(self):
+        if stealth and shadowsurf.get_at(self.rect.center) != (0, 0, 0, 255):
+            return True
+        return False
+
 
 class TempObj(pygame.sprite.Sprite):
     def __init__(self, img=None, x=0, y=0, convert_alpha=False, weight=-1):
@@ -867,6 +884,248 @@ class TempObj(pygame.sprite.Sprite):
             'downright': True,
             'upright': True,
         }
+
+
+# TO//DO: add //lighting visibility and //returning to last pos upon leaving path
+class Guard(pygame.sprite.Sprite):
+    awareness = {
+        'reset': None,
+        'observing': pygame.image.load("assets/img/stealth/eye.png"),
+        'cautious': pygame.image.load("assets/img/stealth/questionmark.png"),
+        'alert': pygame.image.load("assets/img/stealth/exclamationmark.png"),
+    }
+
+    def __init__(self, x, y, target: pygame.sprite.Sprite = None, image="assets/img/stealth/guard.png",
+                 facing=Direction.left, speed: list = None, path: list[shca.Coord] = None):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.imageL = pygame.image.load(image)
+        self.imageR = pygame.transform.flip(self.imageL, True, False)
+        self.rect = self.imageL.get_rect()
+        self.rect.x, self.rect.y = x, y
+        self.defaultfacing = facing
+        if isinstance(facing, str):
+            if facing.lower() == 'l':
+                self.defaultfacing = Direction.left
+            elif facing.lower() == 'r':
+                self.defaultfacing = Direction.right
+            else:
+                raise TypeError("facing must be a Direction, 'l', or 'r'")
+        self.facing = self.defaultfacing
+        self.grounded = False
+        self.vertforce = 0
+        self.gravity = 1.25
+        self.tvel = 30
+        self.jumpheight = 8
+        self.momentum = 0
+        self.speed = speed
+        if speed is None:
+            self.speed = [5, 10]
+        self.path = path
+        # if path is not None:
+        #     self.path = [Demo(pygame.rect.Rect(*s, 1, 1)) for s in path]
+        self.grace = 1.0
+        self.alert = -self.grace
+        self.visiondecay = 0.1
+        self.darkmod = 2
+        if path is None:
+            self.visiondecay /= 2
+        self.target = target
+        if target is None:
+            self.target = plat
+        self.lastseenpos: shca.Coord = None
+        self.timesinceseen = -1
+        self.targetnode = None
+        self.nodeindex = -1
+        self.lastpathpos = None
+        self.reverse = False
+        self.icon = {
+            'icon': "",
+            'pos': 0,
+            'rateofchange': 4,
+        }
+
+    def update(self):
+        if not plat.alive:
+            self.rect.x, self.rect.y = self.x, self.y
+            self.momentum = self.vertforce = 0
+            self.facing = self.defaultfacing
+            self.alert = -self.grace
+            self.lastseenpos: shca.Coord = None
+            self.timesinceseen = -1
+            self.targetnode = None
+            self.nodeindex = -1
+            self.lastpathpos = None
+            self.reverse = False
+            self.icon = {
+                'icon': "",
+                'pos': 0,
+                'rateofchange': 4,
+            }
+            return
+
+        self.pathfind()
+        self.observe()
+
+        self.gravitycalc()
+
+    def pathfind(self):
+        if self.alert <= 0:
+            if self.path is None and self.lastpathpos is None:
+                if self.alert == -self.grace:
+                    self.popup('observing')
+                return
+            self.popup('reset')
+            if self.path is None:
+                pass
+            elif self.lastpathpos is None:
+                for i in range(len(self.path) - 1):
+                    if shca.segmentintersect((self.path[i], self.path[i + 1]),
+                                             (self.rect.midtop, self.rect.midbottom)) or \
+                            shca.segmentintersect((self.path[i], self.path[i + 1]),
+                                                  (self.rect.midleft, self.rect.midright)):
+                        if self.path[i][0] < self.rect.centerx or self.path[i][0] > self.rect.centerx:
+                            self.targetnode = self.path[i]
+                            self.nodeindex = i
+                            self.lastpathpos = self.rect.center
+                            self.reverse = True
+                        elif self.path[i + 1][0] < self.rect.centerx or self.path[i + 1][0] > self.rect.centerx:
+                            self.targetnode = self.path[i + 1]
+                            self.nodeindex = i + 1
+                            self.lastpathpos = self.rect.center
+                            self.reverse = False
+                        break
+            elif self.rect.collidepoint(*self.targetnode):
+                if self.nodeindex == 0 or self.nodeindex == len(self.path) - 1:
+                    self.reverse = not self.reverse
+                    if len(self.path) == 1:
+                        self.path = None
+                        return
+                    elif len(self.path) == 2:
+                        self.nodeindex = 0 if self.nodeindex != 0 else 1
+                    else:
+                        self.nodeindex = max(min(self.nodeindex, len(self.path) - 2), 1)
+                    self.targetnode = self.path[self.nodeindex]
+                else:
+                    self.nodeindex += -1 if self.reverse else 1
+                    self.targetnode = self.path[self.nodeindex]
+
+            if self.targetnode:
+                self.facing = Direction.left if self.targetnode[0] < self.rect.centerx else Direction.right
+            self.momentum += -self.speed[0] if self.facing == Direction.left else self.speed[0]
+        else:
+            if self.rect.colliderect(self.target):
+                if plat == self.target:
+                    plat.die("guard", self)
+                    return
+
+            if self.rect.collidepoint(*self.lastseenpos) or self.timesinceseen >= 150:
+                self.alert = -self.grace
+                self.timesinceseen = -1
+                self.lastseenpos = None
+                self.targetnode = self.lastpathpos
+                return
+
+            self.facing = Direction.left if self.lastseenpos[0] < self.rect.centerx else Direction.right
+            if 0 < self.alert < 1:
+                self.momentum += -self.speed[0] if self.facing == Direction.left else self.speed[0]
+            elif self.alert >= 1:
+                self.momentum += -self.speed[1] if self.facing == Direction.left else self.speed[1]
+
+    def observe(self):
+        for edge in Light.polycache[1]:
+            if shca.segmentintersect((self.rect.center, self.target.rect.center), edge):
+                self.timesinceseen += 1 if self.timesinceseen > -1 else 0
+                break
+        else:
+            if shca.checkvisible(self.rect.center, self.target.rect.center, self.facing):
+                mod = self.darkmod if self.target.shaded() else 1
+                if (amt := 0.5 * (1 - self.visiondecay * mod *
+                                  (dist(self.rect.center, self.target.rect.center) // 32))) > 0:
+                    self.lastseenpos = self.target.rect.center
+                    self.timesinceseen = 0
+                    self.alert += amt
+
+        if -self.grace < self.alert < 1:
+            self.popup('cautious')
+        elif self.alert >= 1:
+            self.popup('alert')
+
+    def gravitycalc(self):
+        self.rect.y += 2
+        grounded = pygame.sprite.spritecollide(self, collidetiles, False)
+        self.rect.y -= 2
+
+        if grounded or self.rect.bottom >= height:
+            self.grounded = True
+        else:
+            self.grounded = False
+
+        if self.vertforce - self.gravity < -self.tvel:
+            self.vertforce = -self.tvel
+        else:
+            self.vertforce -= self.gravity
+
+        self.rect.x += self.momentum
+        collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+        didcollide = any(collidedtiles)
+
+        for tile1 in collidedtiles:
+            if self.momentum > 0:
+                self.rect.right = tile1.rect.left
+                self.momentum = 0
+            elif self.momentum < 0:
+                self.rect.left = tile1.rect.right
+                self.momentum = 0
+        if self.rect.right > width:
+            self.rect.right = width
+            self.momentum = 0
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.momentum = 0
+
+        self.momentum = 0
+
+        self.rect.y -= self.vertforce
+        collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+
+        for tile1 in collidedtiles:
+            if self.vertforce < 0:
+                self.rect.bottom = tile1.rect.top
+                self.vertforce = 0
+            elif self.vertforce > 0:
+                self.rect.top = tile1.rect.bottom
+                self.vertforce = 0
+                self.rect.right = tile1.rect.left
+        if self.rect.bottom > height:
+            self.rect.bottom = height
+            self.vertforce = 0
+        if self.rect.top < 0:
+            self.rect.top = 0
+            self.vertforce = 0
+
+        if self.grounded and (didcollide or self.alert >= 1 and self.target.rect.bottom < self.rect.top):
+            self.vertforce += self.jumpheight
+            self.rect.y -= 1
+
+    def popup(self, icon: str = None, draw=False):
+        if icon:
+            if self.icon['icon'] == Guard.awareness[icon]:
+                pass
+            else:
+                self.icon['icon'] = Guard.awareness[icon]
+                self.icon['pos'] = 0
+                self.icon['rateofchange'] = 4
+        if draw:
+            if self.icon['icon']:
+                if self.icon['pos'] >= 0:
+                    self.icon['pos'] += self.icon['rateofchange']
+                    self.icon['rateofchange'] -= 0.5
+                else:
+                    self.icon['pos'] = -1
+                    self.icon['rateofchange'] = 0
+                win.blit(self.icon['icon'], (self.rect.x, self.rect.y - 48 - self.icon['pos']))
 
 
 # tile types
@@ -1375,6 +1634,16 @@ class PistonRod(Tile):
             push(self.direction, [self.hostrect, self.rect], self, weight=self.weight)
 
 
+class Diamond(Tile):
+    def __init__(self, x, y):
+        super().__init__("assets/img/stealth/diamond.png", x, y, True)
+
+
+class Glass(Tile):
+    def __init__(self, x, y):
+        super().__init__("assets/img/stealth/glass.png", x, y)
+
+
 # refresh every frame
 def redrawgamewindow():
     # ~10ms
@@ -1388,6 +1657,10 @@ def redrawgamewindow():
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     for sprite in projectiles:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
+    for sprite in guards:
+        win.blit(sprite.imageL if sprite.facing == Direction.left else sprite.imageR,
+                 (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
+        sprite.popup(draw=True)
     if particlesys.particles or particlesys.heldparticles:
         particlesys.run("square")
     win.blit(leveltext, (4, 1024))
@@ -1395,15 +1668,15 @@ def redrawgamewindow():
     for sprite in vortextiles:
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     if lighttiles:
-        # blend_rgba takes up A LOT of time (~23ms PER CALL)
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
-        for sprite in lightingtiles:
-            for coord in sprite.visiblepolycache[0]:
-                pygame.draw.circle(win, colors.RED, coord, 1)
+        # for sprite in lightingtiles:
+        #     for coord in sprite.visiblepolycache[0]:
+        #         pygame.draw.circle(win, colors.RED, coord, 1)
         #     for coord in Light.polycache[0]:
         #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
         # for coord in Light.polycache[0]:
         #     pygame.draw.circle(win, colors.RED, coord, 1)
+
     # ~1ms
     pygame.display.flip()
 
@@ -1471,9 +1744,19 @@ while run:
                     bgloaded = True
                 if tile == 9:
                     rocktiles.add(Rock(levelx, levely))
+                if tile == 10:
+                    turrettiles.add(Turret(levelx, levely))
                 if tile == 11:
                     lighttiles.add(Light(levelx, levely))
+                if tile == 14:
+                    guards.add(Guard(levelx, levely))
                 if type(tile) == list:
+                    if tile[0] == 1:
+                        if tile[1] == 0:
+                            glasstiles.add(Glass(levelx, levely))
+                    if tile[0] == 4:
+                        if tile[1] == 0:
+                            esctiles.add(Diamond(levelx, levely))
                     if tile[0] == 5:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
@@ -1539,6 +1822,15 @@ while run:
                         #     prevortextiles.append([levelx, levely, "assets/img/elevator.png"])
                     if tile[0] == 13:
                         pistontiles.add(Piston(levelx, levely, tile[1]))
+                    if tile[0] == 14:
+                        if len(tile) == 5:
+                            guards.add(Guard(levelx, levely, tile[1], path=tile[2], facing=tile[3], speed=tile[4]))
+                        elif len(tile) == 4:
+                            guards.add(Guard(levelx, levely, tile[1], path=tile[2], facing=tile[3]))
+                        elif len(tile) == 3:
+                            guards.add(Guard(levelx, levely, tile[1], path=tile[2]))
+                        else:
+                            guards.add(Guard(levelx, levely, tile[1]))
 
                 if not bgloaded:
                     spacetiles.add(Space(levelx, levely))
@@ -1552,39 +1844,50 @@ while run:
             raise "Error: No spawn found"
 
         spritesbg.add(spacetiles, lavatiles, circuittiles)
-        sprites.add(blocktiles, spawn, esctiles, rocktiles, turrettiles, lighttiles, pistonrodtiles)
-        sprites2.add(elevtiles, switchtiles, doortiles, pistontiles)
+        sprites.add(blocktiles, spawn, rocktiles, turrettiles, lighttiles, pistonrodtiles)
+        sprites2.add(esctiles, elevtiles, switchtiles, doortiles, pistontiles)
         projectiles.add(bullets)
         solidtiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles, pistontiles,
                        pistonrodtiles, bullets)
-        collidetiles.add(solidtiles)
+        collidetiles.add(solidtiles, glasstiles)
         tiles.add(spritesbg, sprites, sprites2)
         Elev.collidetiles.add([s for s in tiles if s not in circuittiles])
 
-        if lighttiles:
+        if lighttiles or guards:
             stealth = True
+            Esc(-32, -32).add(esctiles, tiles, sprites)
             shadowsurf.fill(colors.DGRAY)
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
             lighttiles.update()
             lightingtiles.update()
-        if stealth:
-            Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
 
         plat.die("respawn", "game")
 
+    # if stealth:
+    #     Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
     if lavadeath := pygame.sprite.spritecollide(plat, lavatiles, False):
         plat.die("lava", lavadeath)
-    if pygame.sprite.spritecollide(plat, esctiles, False):
-        animations['cutscene'] = False
-        invisiblespawn = False
-        if levelcount == 4 - 1:
-            animations['cutscene'] = True
-            invisiblespawn = True
-            zoom = 12
-            plat.momentum = 0
-            plat.vertforce = 0
-            animations['animlive'] = True
-        plat.escaped = True
+    if escapes := pygame.sprite.spritecollide(plat, esctiles, False):
+        fakeescapes = [s for s in escapes if s.__class__ != Esc]
+        if len(fakeescapes) == len(escapes):
+            for escape in fakeescapes:
+                if isinstance(escape, Diamond):
+                    escape.rect.x, escape.rect.y = -32, -32
+                    for tile in esctiles:
+                        if tile.__class__ == Esc and tile.rect.topleft == (-32, -32):
+                            tile.rect.x, tile.rect.y = spawn.rect.x, spawn.rect.y
+
+        else:
+            animations['cutscene'] = False
+            invisiblespawn = False
+            if levelcount == 4 - 1:
+                animations['cutscene'] = True
+                invisiblespawn = True
+                zoom = 12
+                plat.momentum = 0
+                plat.vertforce = 0
+                animations['animlive'] = True
+            plat.escaped = True
     if animations['cutscene']:
         animate()
 
@@ -1608,6 +1911,7 @@ while run:
     turrettiles.update()
     pistontiles.update()
     projectiles.update()
+    guards.update()
     plat.move()
 
     # reset game window
