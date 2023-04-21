@@ -278,26 +278,10 @@ class Player(pygame.sprite.Sprite):
                 self.rect.y -= hax.flyspeed
             if keys[pygame.K_o]:
                 for repeat in range(10):
-                    x = 0
-                    for i in range(100):
-                        x = abs(x)
-
-                        if i < 25:
-                            x += 4
-                        elif 25 <= i < 50:
-                            x -= 4
-                        elif 50 <= i < 75:
-                            x += 4
-                        elif 75 <= i < 100:
-                            x -= 4
-
-                        y = 100 - x
-
-                        if i >= 50:
-                            x *= -1
-                        if 25 <= i < 75:
-                            y *= -1
-                        particlesys.add(pos=plat.rect.center, vel=[x / 50, y / 50], mass=8, decay=0,
+                    vec = pygame.math.Vector2(0, -1)
+                    for i in range(360):
+                        vec.rotate_ip(1)
+                        particlesys.add(pos=plat.rect.center, vel=[vec.x, vec.y], mass=8, decay=0,
                                         gravity=0, color=(190, 195, 199), delay=i + 99 * repeat)
 
             if not ((keys[pygame.K_a] or keys[pygame.K_LEFT]) and (keys[pygame.K_d] or keys[pygame.K_RIGHT])):
@@ -398,6 +382,8 @@ class Player(pygame.sprite.Sprite):
                     particlesys.add(pos=self.rect.center, vel=[random.randint(-5, 5),
                                                                random.randint(-5, 5)], gravity=0, mass=15,
                                     decay=0.75, color=(190, 195, 199))
+            if cause == "caught":
+                shake(15)
 
             self.alive = False
             tiles.update()
@@ -975,8 +961,13 @@ class Guard(pygame.sprite.Sprite):
             if self.path is None and self.lastpathpos is None:
                 if self.alert == -self.grace:
                     self.popup('observing')
+                    self.timesinceseen = -1
                 return
-            self.popup('reset')
+
+            if self.alert == -self.grace:
+                self.popup('reset')
+                self.timesinceseen = -1
+
             if self.path is None:
                 pass
             elif self.lastpathpos is None:
@@ -1017,7 +1008,7 @@ class Guard(pygame.sprite.Sprite):
         else:
             if self.rect.colliderect(self.target):
                 if plat == self.target:
-                    plat.die("guard", self)
+                    plat.die("caught", self)
                     return
 
             if self.rect.collidepoint(*self.lastseenpos) or self.timesinceseen >= 150:
@@ -1051,6 +1042,9 @@ class Guard(pygame.sprite.Sprite):
             self.popup('cautious')
         elif self.alert >= 1:
             self.popup('alert')
+
+        if -self.grace < self.alert <= 0 and self.timesinceseen > 0:
+            self.alert = max(self.alert - 1 / 60, -self.grace)
 
     def gravitycalc(self):
         self.rect.y += 2
@@ -1105,9 +1099,18 @@ class Guard(pygame.sprite.Sprite):
             self.rect.top = 0
             self.vertforce = 0
 
-        if self.grounded and (didcollide or self.alert >= 1 and self.target.rect.bottom < self.rect.top):
-            self.vertforce += self.jumpheight
-            self.rect.y -= 1
+        if self.grounded:
+            if didcollide:
+                self.jump()
+            elif self.alert >= 1 and self.target.rect.bottom < self.rect.top:
+                self.jump()
+            elif self.lastseenpos and self.lastseenpos[1] < self.rect.top \
+                    and self.rect.left <= self.lastseenpos[0] <= self.rect.right:
+                self.jump()
+
+    def jump(self):
+        self.vertforce += self.jumpheight
+        self.rect.y -= 1
 
     def popup(self, icon: str = None, draw=False):
         if icon:
