@@ -44,7 +44,7 @@ alt:
 
 multiple spawns are not supported
 
-switches behind doors are not supported, nor are any forms of putting multiple tiles on one grid space
+switches behind doors are not supported, nor are any forms of putting multiple tiles on one grid space in an input img
 edit the level data to do this
 
 2) run "converter.py"
