@@ -1,4 +1,4 @@
-# all levels are in an 32x32 grid
+# all levels are in a 32x32 grid
 # each number in a level corresponds to the congruent tile
 # 0 = space, 1 = block, 2 = escape, 3 = lava, 4 = spawn
 

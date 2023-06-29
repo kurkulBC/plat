@@ -20,9 +20,46 @@ class Direction(Enum):
     downright = auto()
     upright = auto()
 
+    opposites = {
+        up: down,
+        left: right,
+        down: up,
+        right: left,
+
+        upleft: downright,
+        downleft: upright,
+        downright: upleft,
+        upright: downleft,
+    }
+    rotations = {
+        up: left,
+        left: down,
+        down: right,
+        right: up,
+
+        upleft: downleft,
+        downleft: downright,
+        downright: upright,
+        upright: upleft,
+    }
+
+    @staticmethod
+    def opposite(direction):
+        try:
+            return Direction.opposites[direction]
+        except KeyError:
+            raise TypeError("Not a Direction")
+
+    @staticmethod
+    def rotate(direction):
+        try:
+            return Direction.rotations[direction]
+        except KeyError:
+            return TypeError("Not a Direction")
+
 
 # dummy class
 class Demo(pygame.sprite.Sprite):
-    def __init__(self, rect: pygame.rect.Rect):
+    def __init__(self, rect: pygame.rect.Rect | pygame.rect.FRect):
         super().__init__()
         self.rect = rect

@@ -15,8 +15,13 @@ color codes:
     light - 192, 192, 192
     vortex - N/A
     piston - 100, 100, 100 [(0-0-3)rotation]
+    dropper - (196, 128, 0)
+    conveyor - (128, 128, 0)
+    conductor - (128, 128, 128)
+    grappler -
 
     diamond - 0, 255, 255
+    glass - 64, 64, 64
 
     (x is ID, y is special attribute)
     value range format: (minval-defaultval-maxval)
@@ -38,9 +43,13 @@ tile codes:
     vortex - 12
     piston - 13
     guard - 14
+    dropper - 15
+    conveyor - 16
+    grappler - 17
 
 alt:
     diamond: [4, 0]
+    glass: [1, 0]
 
 multiple spawns are not supported
 
