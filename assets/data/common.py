@@ -20,40 +20,50 @@ class Direction(Enum):
     downright = auto()
     upright = auto()
 
-    opposites = {
-        up: down,
-        left: right,
-        down: up,
-        right: left,
+    @staticmethod
+    def opposite(direction):
+        return DirectionTools.opposite(direction)
 
-        upleft: downright,
-        downleft: upright,
-        downright: upleft,
-        upright: downleft,
+    @staticmethod
+    def rotate(direction):
+        return DirectionTools.rotate(direction)
+
+
+class DirectionTools(object):
+    opposites = {
+        Direction.up: Direction.down,
+        Direction.left: Direction.right,
+        Direction.down: Direction.up,
+        Direction.right: Direction.left,
+
+        Direction.upleft: Direction.downright,
+        Direction.downleft: Direction.upright,
+        Direction.downright: Direction.upleft,
+        Direction.upright: Direction.downleft,
     }
     rotations = {
-        up: left,
-        left: down,
-        down: right,
-        right: up,
+        Direction.up: Direction.left,
+        Direction.left: Direction.down,
+        Direction.down: Direction.right,
+        Direction.right: Direction.up,
 
-        upleft: downleft,
-        downleft: downright,
-        downright: upright,
-        upright: upleft,
+        Direction.upleft: Direction.downleft,
+        Direction.downleft: Direction.downright,
+        Direction.downright: Direction.upright,
+        Direction.upright: Direction.upleft,
     }
 
     @staticmethod
-    def opposite(direction):
+    def opposite(direction: Direction):
         try:
-            return Direction.opposites[direction]
+            return DirectionTools.opposites[direction]
         except KeyError:
             raise TypeError("Not a Direction")
 
     @staticmethod
-    def rotate(direction):
+    def rotate(direction: Direction):
         try:
-            return Direction.rotations[direction]
+            return DirectionTools.rotations[direction]
         except KeyError:
             return TypeError("Not a Direction")
 

@@ -18,7 +18,7 @@ color codes:
     dropper - (196, 128, 0)
     conveyor - (128, 128, 0)
     conductor - (128, 128, 128)
-    grappler -
+    grappler - (64, 128, 196)
 
     diamond - 0, 255, 255
     glass - 64, 64, 64
@@ -53,9 +53,9 @@ alt:
 
 multiple spawns are not supported
 
-switches behind doors are not supported, nor are any forms of putting multiple tiles on one grid space in an input img
+any form of putting multiple unrelated tiles on one grid space in an input img is not supported
 edit the level data to do this
 
 2) run "converter.py"
 
-3) level data will be outputted in the console
+3) level data will be output to the console
