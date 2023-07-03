@@ -137,6 +137,7 @@ def segmentintersect(line1: Line, line2: Line):
     return intersection
 
 
+# TODO: map borders not in corners
 def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line], direction: Direction = None) \
         -> list[Coord]:
     visible = []
@@ -168,7 +169,7 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
         corners.append(hostrect.bottomright)
         corners.append(hostrect.topright)
     held = []
-    validtiles = [s for s in tiles if s.rect != hostrect]
+    validtiles = [s for s in tiles if s.rect is not hostrect]
     for corner in corners:
         vec = (pygame.math.Vector2(corner) - pygame.math.Vector2(start)).normalize()
         floatpos = list(start) + vec
@@ -211,12 +212,6 @@ def visibleedges(viscorners: list[Coord]) -> list[Line]:
         for j in range(i + 1, len(viscorners)):
             a, b = viscorners[i], viscorners[j]
             if a[0] == b[0] and abs(a[1] - b[1]) <= size + 2 or a[1] == b[1] and abs(a[0] - b[0]) <= size + 2:
-                # for corner in viscorners:
-                #     # XTODO: when 2 lines are the same over a point the edge is not saved
-                #     if (pos := segmentintersect((a, b), (start, corner))) and pos not in (a, b):
-                #         print(pos, a, b)
-                #         break
-                # else:
                 visible.append((a, b))
 
     return visible

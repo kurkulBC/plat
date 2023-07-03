@@ -54,8 +54,10 @@ while run:
             savedpixels.append([15, -1])
         elif data == (128, 128, 0):
             savedpixels.append(16)
+        elif data == (128, 128, 128):
+            savedpixels.append(17)
         elif data == (64, 128, 196):
-            savedpixels.append([17, -1])
+            savedpixels.append([18, -1])
 
         elif data == (0, 255, 255):
             savedpixels.append([4, 0])

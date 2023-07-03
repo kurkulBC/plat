@@ -6,7 +6,7 @@ color codes:
     spawn - 0, 255, 0
     lava - 255, 0, 0
     escape - 0, 0, 255
-    elevator - 255, 0, 255
+    elevator - 255, 0, 255 [(0-2-?)speed]
     circuit - 255, 128, 255
     switch - 255, 128, 128 [id]
     door - 128, 60, 60 [id, (0-0-?)locked tile]
@@ -19,6 +19,7 @@ color codes:
     conveyor - (128, 128, 0)
     conductor - (128, 128, 128)
     grappler - (64, 128, 196)
+    stickyelev - (200, 196, 0)
 
     diamond - 0, 255, 255
     glass - 64, 64, 64
@@ -45,7 +46,9 @@ tile codes:
     guard - 14
     dropper - 15
     conveyor - 16
-    grappler - 17
+    conductor - 17
+    grappler - 18
+    stickyelev - 19
 
 alt:
     diamond: [4, 0]

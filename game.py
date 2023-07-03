@@ -5,13 +5,13 @@ from assets.data.lvldata import leveldescs as leveldescs
 from assets.data.lvldata import anims as anims
 import assets.data.colors as colors
 import assets.hax as hax
-from assets.data.common import screenwidth, screenheight, width, height, size, Direction, Demo
+from assets.data.common import screenwidth, screenheight, width, height, size, Direction, ShakeLayered
 import random
 from glitch_this import ImageGlitcher
 import timeit
 from assets.data import shadowcasting as shca
 from assets.data import tilegroups
-from math import dist
+from math import dist, copysign
 
 # init ~1.7s
 # pygame.init()
@@ -60,7 +60,6 @@ lightingtiles = pygame.sprite.Group()
 vortextiles = pygame.sprite.Group()
 pistontiles = pygame.sprite.Group()
 pistonrodtiles = pygame.sprite.Group()
-glasstiles = pygame.sprite.Group()
 droppertiles = pygame.sprite.Group()
 droplets = pygame.sprite.Group()
 conveyortiles = pygame.sprite.Group()
@@ -71,15 +70,11 @@ hooktrails = pygame.sprite.Group()
 sensortiles = pygame.sprite.Group()
 
 # create special groups
-spritesbg = pygame.sprite.Group()
-sprites = pygame.sprite.Group()
-sprites2 = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
-
-collidetiles = pygame.sprite.Group()
 solidtiles = pygame.sprite.Group()
+collidetiles = pygame.sprite.Group()
 fallingtiles = pygame.sprite.Group()
-tiles = pygame.sprite.Group()
+tiles = ShakeLayered()
 
 guards = pygame.sprite.Group()
 wireless = pygame.sprite.Group()
@@ -87,7 +82,8 @@ wireless = pygame.sprite.Group()
 # load sound
 ost = pygame.mixer.music
 sfx = {
-    s: pygame.mixer.Sound("assets/sfx/crush.ogg") for s in
+    # like this so it doesn't run an error
+    s: pygame.mixer.Sound(f"assets/sfx/crush.ogg") for s in
     [
         'crush',
         'melt',
@@ -97,7 +93,9 @@ sfx = {
         'press',
         'break',
         'drop',
-        'hook'
+        'hook',
+        'reel',
+        'pick',
     ]
 }
 
@@ -130,15 +128,15 @@ class Player(pygame.sprite.Sprite):
         self.acceleration = 0
         self.vel = 10
         self.turnrate = 8
-        self.transportmomentum = 0
+        self.transportmomentum = [0, 0]
         self.moving = False
         self.alive = True
         self.vertforce = 0
         self.gravity = 1.25
-        self.jumpheight = 24
+        self.jumpheight = 18
         self.tvel = 30
         self.jumping = False
-        self.minjump = 2
+        self.minjump = 1
         self.maxjump = self.jumpheight / self.gravity
         self.jumpholding = False
         self.jumptime = 0
@@ -286,6 +284,7 @@ class Player(pygame.sprite.Sprite):
 
     # run for character motion
     def move(self):
+        global framerate
         keys = pygame.key.get_pressed()
         self.gravitycalc()
 
@@ -303,6 +302,8 @@ class Player(pygame.sprite.Sprite):
                         vec.rotate_ip(1)
                         particlesys.add(pos=plat.rect.center, vel=[vec.x, vec.y], mass=8, decay=0,
                                         gravity=0, color=(190, 195, 199), delay=i + 99 * repeat)
+            if keys[pygame.K_i]:
+                framerate = 1
 
             if not ((keys[pygame.K_a] or keys[pygame.K_LEFT]) and (keys[pygame.K_d] or keys[pygame.K_RIGHT])):
                 if keys[pygame.K_a] or keys[pygame.K_LEFT]:
@@ -338,22 +339,16 @@ class Player(pygame.sprite.Sprite):
                 blocked = True
 
         for tile1 in collidedtiles:
-            if self.momentum > 0:
+            if self.transportmomentum[0] > 0 or self.momentum > 0:
                 if self.weight >= tile1.weight and not blocked:
                     push(Direction.right, self)
                 self.rect.right = tile1.rect.left
                 self.momentum = 0
-            elif self.momentum < 0:
+            elif self.transportmomentum[0] < 0 or self.momentum < 0:
                 if self.weight >= tile1.weight and not blocked:
                     push(Direction.left, self)
                 self.rect.left = tile1.rect.right
                 self.momentum = 0
-        if self.rect.right > width:
-            self.rect.right = width
-            self.momentum = 0
-        if self.rect.left < 0:
-            self.rect.left = 0
-            self.momentum = 0
 
         self.rect.y -= self.vertforce
         collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
@@ -364,31 +359,32 @@ class Player(pygame.sprite.Sprite):
                 blocked = True
 
         for tile1 in collidedtiles:
-            if self.vertforce < 0:
+            if self.transportmomentum[1] < 0 or self.vertforce < 0:
                 if self.weight >= tile1.weight and not blocked:
                     push(Direction.down, self)
                 self.rect.bottom = tile1.rect.top
                 self.vertforce = 0
-            elif self.vertforce > 0:
+            elif self.transportmomentum[1] > 0 or self.vertforce > 0:
                 if self.weight >= tile1.weight and not blocked:
                     push(Direction.up, self)
                 self.rect.top = tile1.rect.bottom
                 self.vertforce = 0
 
-            elif self.transportmomentum < 0:
-                self.rect.left = tile1.rect.right
-            elif self.transportmomentum > 0:
-                self.rect.right = tile1.rect.left
-        if self.rect.bottom > height:
-            self.rect.bottom = height
-            self.vertforce = 0
         if self.rect.top < 0:
             self.rect.top = 0
             self.vertforce = 0
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.momentum = 0
+        if self.rect.bottom > height:
+            self.rect.bottom = height
+            self.vertforce = 0
+        if self.rect.right > width:
+            self.rect.right = width
+            self.momentum = 0
 
-        self.transportmomentum = 0
-        collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-        if collidedtiles:
+        self.transportmomentum = [0, 0]
+        if collidedtiles := pygame.sprite.spritecollide(self, collidetiles, False):
             if not hax.active or not hax.noclip:
                 if not mute:
                     sfx['crush'].play()
@@ -426,7 +422,6 @@ class Player(pygame.sprite.Sprite):
 
             self.alive = False
             tiles.update()
-            projectiles.update()
             guards.update()
             self.rect.x = spawn.x + size / 4
             self.rect.y = spawn.y + size / 2
@@ -508,69 +503,67 @@ class Particle(object):
 
 
 # surrounding check for a tile's connection to power
-def power(rect: pygame.rect.Rect, aslist=True, exact=False) -> dict[Direction, bool] | bool:
+def power(sprite: pygame.sprite.Sprite, aslist=True, exact=False) -> dict[Direction, pygame.sprite.Sprite]:
     powered = {
-        Direction.up: False,
-        Direction.left: False,
-        Direction.down: False,
-        Direction.right: False,
+        Direction.up: None,
+        Direction.left: None,
+        Direction.down: None,
+        Direction.right: None,
     }
     doors = [s for s in doortiles if s.on]
 
-    tempsprite = Demo(rect)
-
-    tempsprite.rect.y -= 1
-    uppower = pygame.sprite.spritecollideany(tempsprite, [*rocktiles, *power.conductorcache])
-    upblock = pygame.sprite.spritecollideany(tempsprite, doors)
-    tempsprite.rect.y += 1
+    sprite.rect.y -= 1
+    uppower = pygame.sprite.spritecollideany(sprite, [*rocktiles, *power.conductorcache])
+    upblock = pygame.sprite.spritecollideany(sprite, doors)
+    sprite.rect.y += 1
     while uppower and not upblock:
-        if exact and uppower.rect.x != tempsprite.rect.x:
+        if exact and uppower.rect.x != sprite.rect.x:
             break
         if not aslist:
-            return True
-        powered[Direction.up] = True
+            return uppower
+        powered[Direction.up] = uppower
         break
 
-    tempsprite.rect.x -= 1
-    leftpower = pygame.sprite.spritecollideany(tempsprite, [*rocktiles, *power.conductorcache])
-    leftblock = pygame.sprite.spritecollideany(tempsprite, doors)
-    tempsprite.rect.x += 1
+    sprite.rect.x -= 1
+    leftpower = pygame.sprite.spritecollideany(sprite, [*rocktiles, *power.conductorcache])
+    leftblock = pygame.sprite.spritecollideany(sprite, doors)
+    sprite.rect.x += 1
     while leftpower and not leftblock:
-        if exact and leftpower.rect.y != tempsprite.rect.y:
+        if exact and leftpower.rect.y != sprite.rect.y:
             break
         if not aslist:
-            return True
-        powered[Direction.left] = True
+            return leftpower
+        powered[Direction.left] = leftpower
         break
 
-    tempsprite.rect.y += 1
-    downpower = pygame.sprite.spritecollideany(tempsprite, [*rocktiles, *power.conductorcache])
-    downblock = pygame.sprite.spritecollideany(tempsprite, doors)
-    tempsprite.rect.y -= 1
+    sprite.rect.y += 1
+    downpower = pygame.sprite.spritecollideany(sprite, [*rocktiles, *power.conductorcache])
+    downblock = pygame.sprite.spritecollideany(sprite, doors)
+    sprite.rect.y -= 1
     while downpower and not downblock:
-        if exact and downpower.rect.x != tempsprite.rect.x:
+        if exact and downpower.rect.x != sprite.rect.x:
             break
         if not aslist:
-            return True
-        powered[Direction.down] = True
+            return downpower
+        powered[Direction.down] = downpower
         break
 
-    tempsprite.rect.x += 1
-    rightpower = pygame.sprite.spritecollideany(tempsprite, [*rocktiles, *power.conductorcache])
-    rightblock = pygame.sprite.spritecollideany(tempsprite, doors)
-    tempsprite.rect.x -= 1
+    sprite.rect.x += 1
+    rightpower = pygame.sprite.spritecollideany(sprite, [*rocktiles, *power.conductorcache])
+    rightblock = pygame.sprite.spritecollideany(sprite, doors)
+    sprite.rect.x -= 1
     while rightpower and not rightblock:
-        if exact and rightpower.rect.y != tempsprite.rect.y:
+        if exact and rightpower.rect.y != sprite.rect.y:
             break
         if not aslist:
-            return True
-        powered[Direction.right] = True
+            return rightpower
+        powered[Direction.right] = rightpower
         break
 
     return powered if aslist else False
 
 
-power.conductorcache = []
+power.conductorcache = pygame.sprite.Group()
 
 
 # image glitching
@@ -587,7 +580,6 @@ def animate():
     global animations
     global shadowsurf
     global zoom
-    global screenshake
     global screenrotation
     global mute
 
@@ -668,15 +660,15 @@ def animate():
         plat.acceleration = 0
         plat.vel = 10
         plat.turnrate = 8
-        plat.transportmomentum = 0
+        plat.transportmomentum = [0, 0]
         plat.moving = False
         plat.alive = True
         plat.vertforce = 0
         plat.gravity = 1.25
-        plat.jumpheight = 24
+        plat.jumpheight = 12
         plat.tvel = 30
         plat.jumping = False
-        plat.minjump = 2
+        plat.minjump = 1
         plat.maxjump = plat.jumpheight / plat.gravity
         plat.jumpholding = False
         plat.jumptime = 0
@@ -689,7 +681,7 @@ def animate():
 
 # screenshake
 def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=1, yshakedecay=1):
-    global screenshake, shaketime, shakeintensity, shakedecay
+    global shaketime, shakeintensity, shakedecay
 
     shaketime = shakeduration
     shakeintensity = [xshakeintensity, yshakeintensity]
@@ -698,7 +690,7 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 
 # push things around
 # entities won't push themselves, but safesprites won't be pushed by instigators
-def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: list = None, weight=None):
+def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: list = None, weight=None, mercy=True):
     if direction not in Direction:
         raise ValueError("Direction required as input")
     if not isinstance(safesprites, list):
@@ -720,6 +712,9 @@ def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: 
                     collision.rect.left = entity.rect.right
                 nextcollide.append(collision)
             else:
+                if not mercy:
+                    entity.kill()
+                    continue
                 if direction == Direction.up:
                     entity.rect.top = collision.rect.bottom
                 if direction == Direction.left:
@@ -743,7 +738,7 @@ def boundscheck(rect: pygame.rect.Rect) -> bool:
 
 # tile parent classes
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0, weight=1, flip=False):
+    def __init__(self, img, x=0, y=0, convert_alpha=False, rotate=0, weight=1, flip=False, layer=0):
         super().__init__()
         self.x = x
         self.y = y
@@ -772,12 +767,13 @@ class Tile(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
+        self._layer = layer
 
         self.vertforce = 0
         self.gravity = plat.gravity
         self.tvel = plat.tvel
         self.grounded = False
-        self.transportmomentum = 0
+        self.transportmomentum = [0, 0]
 
     def update(self) -> bool:
         if not plat.alive:
@@ -792,7 +788,7 @@ class Tile(pygame.sprite.Sprite):
     def push(self, direction: Direction):
         pass
 
-    def populategroups(self):
+    def populategroups(self) -> pygame.sprite.Sprite:
         tiles.add(self)
         if hasattr(tilegroups, self.__class__.__name__):
             try:
@@ -801,6 +797,7 @@ class Tile(pygame.sprite.Sprite):
                 raise RuntimeError(f"populategroups() didn't work for {self.__class__.__name__}")
         else:
             raise NotImplementedError(f"Class '{self.__class__.__name__}' not defined in tilegroups.py")
+        return self
 
     def coverededge(self, direction: Direction = None):
         # this way it can be (evaluated if direction is specified else iterated)
@@ -812,24 +809,24 @@ class Tile(pygame.sprite.Sprite):
                 'right': True,
             }
 
+        tempgroup = [s for s in solidtiles if s != self]
         if direction is None:
             coverededges = {}
-            tempgroup = [s for s in solidtiles if s != self]
 
             self.rect.y -= 1
-            coverededges['up'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.top < 0])
+            coverededges['up'] = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.top < 0])
             self.rect.y += 1
 
             self.rect.x -= 1
-            coverededges['left'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.left < 0])
+            coverededges['left'] = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.left < 0])
             self.rect.x += 1
 
             self.rect.y += 1
-            coverededges['down'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.bottom > height])
+            coverededges['down'] = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.bottom > height])
             self.rect.y -= 1
 
             self.rect.x += 1
-            coverededges['right'] = any([pygame.sprite.spritecollide(self, tempgroup, False), self.rect.right > width])
+            coverededges['right'] = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.right > width])
             self.rect.x -= 1
 
             return coverededges
@@ -839,19 +836,19 @@ class Tile(pygame.sprite.Sprite):
 
             if direction == Direction.up:
                 self.rect.y -= 1
-                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.top < 0])
+                covered = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.top < 0])
                 self.rect.y += 1
             if direction == Direction.left:
                 self.rect.x -= 1
-                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.left < 0])
+                covered = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.left < 0])
                 self.rect.x += 1
             if direction == Direction.down:
                 self.rect.y += 1
-                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.bottom > height])
+                covered = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.bottom > height])
                 self.rect.y -= 1
             if direction == Direction.right:
                 self.rect.x += 1
-                covered = any([pygame.sprite.spritecollide(self, solidtiles, False), self.rect.right > width])
+                covered = any([pygame.sprite.spritecollideany(self, tempgroup), self.rect.right > width])
                 self.rect.x -= 1
 
             if covered is not None:
@@ -864,47 +861,44 @@ class Tile(pygame.sprite.Sprite):
             coverededges = [True, True, True, True]
 
         tempgroup = [s for s in tiles if s not in solidtiles and s != self]
-        coveredcorners = {}
+        coveredcorners = {
+            'upleft': False,
+            'downleft': False,
+            'downright': False,
+            'upright': False,
+        }
 
         if coverededges['up'] and coverededges['left']:
             self.rect.x -= 1
             self.rect.y -= 1
-            coveredcorners['upleft'] = any([not pygame.sprite.spritecollide(self, tempgroup, False),
+            coveredcorners['upleft'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
                                             self.rect.top < 0, self.rect.left < 0])
             self.rect.x += 1
             self.rect.y += 1
-        else:
-            coveredcorners['upleft'] = False
 
         if coverededges['left'] and coverededges['down']:
             self.rect.x -= 1
             self.rect.y += 1
-            coveredcorners['downleft'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
-                                               self.rect.bottom > height, self.rect.left < 0]))
+            coveredcorners['downleft'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
+                                              self.rect.bottom > height, self.rect.left < 0])
             self.rect.x += 1
             self.rect.y -= 1
-        else:
-            coveredcorners['downleft'] = False
 
         if coverededges['down'] and coverededges['right']:
             self.rect.x += 1
             self.rect.y += 1
-            coveredcorners['downright'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
-                                                self.rect.bottom > height, self.rect.right > width]))
+            coveredcorners['downright'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
+                                               self.rect.bottom > height, self.rect.right > width])
             self.rect.x -= 1
             self.rect.y -= 1
-        else:
-            coveredcorners['downright'] = False
 
         if coverededges['right'] and coverededges['up']:
             self.rect.x += 1
             self.rect.y -= 1
-            coveredcorners['upright'] = (any([not pygame.sprite.spritecollide(self, tempgroup, False),
-                                              self.rect.top < 0, self.rect.right > width]))
+            coveredcorners['upright'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
+                                             self.rect.top < 0, self.rect.right > width])
             self.rect.x -= 1
             self.rect.y += 1
-        else:
-            coveredcorners['upright'] = False
 
         return coveredcorners
 
@@ -939,15 +933,15 @@ class Tile(pygame.sprite.Sprite):
         collidedtiles = pygame.sprite.spritecollide(self, selfcollidetiles, False)
 
         for tile1 in collidedtiles:
-            if self.vertforce < 0:
+            if self.transportmomentum[1] < 0 or self.vertforce < 0:
                 self.rect.bottom = tile1.rect.top
                 self.vertforce = 0
-            elif self.vertforce > 0:
+            elif self.transportmomentum[1] > 0 or self.vertforce > 0:
                 self.rect.top = tile1.rect.bottom
                 self.vertforce = 0
-            elif self.transportmomentum < 0:
+            elif self.transportmomentum[0] < 0:
                 self.rect.left = tile1.rect.right
-            elif self.transportmomentum > 0:
+            elif self.transportmomentum[0] > 0:
                 self.rect.right = tile1.rect.left
         if self.rect.bottom > height:
             self.rect.bottom = height
@@ -956,7 +950,7 @@ class Tile(pygame.sprite.Sprite):
             self.rect.top = 0
             self.vertforce = 0
 
-        self.transportmomentum = 0
+        self.transportmomentum = [0, 0]
         collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
         if collidedtiles:
             if not hax.active or not hax.noclip:
@@ -965,7 +959,7 @@ class Tile(pygame.sprite.Sprite):
 
 
 class TempObj(pygame.sprite.Sprite):
-    def __init__(self, img=None, x=0, y=0, convert_alpha=False, rotate=0, weight=-1):
+    def __init__(self, img=None, x=0, y=0, convert_alpha=False, rotate=0, weight=-1, layer=0):
         super().__init__()
         if img is not None:
             self.weight = weight
@@ -977,6 +971,7 @@ class TempObj(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.image, rotate)
             self.rect = self.image.get_rect()
             self.rect.x, self.rect.y = x, y
+            self._layer = layer
 
     def update(self) -> bool:
         if not plat.alive:
@@ -984,7 +979,8 @@ class TempObj(pygame.sprite.Sprite):
             return False
         return True
 
-    def populategroups(self):
+    def populategroups(self) -> pygame.sprite.Sprite:
+        tiles.add(self)
         projectiles.add(self)
         if hasattr(tilegroups, self.__class__.__name__):
             try:
@@ -993,6 +989,7 @@ class TempObj(pygame.sprite.Sprite):
                 pass
         else:
             raise NotImplementedError(f"Class '{self.__class__.__name__}' not defined in tilegroups.py")
+        return self
 
     def coverededge(self):
         if hasattr(self, 'rect') and pygame.sprite.spritecollide(self, [s for s in solidtiles if s != self], False):
@@ -1286,7 +1283,7 @@ class Guard(pygame.sprite.Sprite):
 # tile types
 class Space(Tile):
     def __init__(self, x, y):
-        super().__init__('space', x, y)
+        super().__init__('space', x, y, layer=-1)
 
 
 class Block(Tile):
@@ -1304,23 +1301,22 @@ class Spawn(Tile):
 
 class Lava(Tile):
     def __init__(self, x, y):
-        super().__init__("lava", x, y)
+        super().__init__("lava", x, y, layer=-1)
 
 
 class Esc(Tile):
     def __init__(self, x, y):
-        super().__init__("escape", x, y)
+        super().__init__("escape", x, y, layer=1)
 
 
 class Elev(Tile):
     collidetiles = pygame.sprite.Group()
     follow = pygame.sprite.Group()
 
-    def __init__(self, x, y, speed=2):
-        super().__init__("elevator", x, y)
+    def __init__(self, x, y, speed=2, img="elevator"):
+        super().__init__(img, x, y, layer=1)
         self.direction = Direction.up
         self.speed = speed
-        self.lastcollide = 1
         self.followers = []
 
     def update(self):
@@ -1328,7 +1324,7 @@ class Elev(Tile):
             self.direction = Direction.up
             return
 
-        if power(self.rect, False):
+        if power(self, False):
             return f"{self} powered"
 
         cls = type(self)
@@ -1371,60 +1367,66 @@ class Elev(Tile):
             canmove[Direction.right] = True
         self.rect.x -= self.speed
 
+        change = 0
+
         # jumping right next to an elevator makes you fly (feature?)
         # but only when you jump on the left side while the elevator moves left
         # keeping bc funy
         if self.direction == Direction.up:
             if self.rect.top - self.speed < 0:
+                change = self.rect.top
                 self.rect.top = 0
                 self.direction = Direction.left
             else:
                 if canmove[self.direction]:
+                    change = self.speed
                     self.rect.y -= self.speed
-                elif touchtiles[self.direction] and touchtiles[self.direction].rect.bottom != self.rect.top:
+                elif touchtiles[self.direction] and (diff := touchtiles[self.direction].rect.bottom - self.rect.top):
+                    change = diff
                     self.rect.top = touchtiles[self.direction].rect.bottom
                     self.direction = Direction.left
                 else:
                     self.direction = Direction.left
 
-            if followers := pygame.sprite.spritecollide(self, [plat, *cls.follow], False):
-                self.followers.extend(followers)
-                for follower in self.followers:
-                    if canmove[self.direction]:
-                        follower.rect.y -= self.speed
-                    else:
-                        follower.rect.y -= abs(self.rect.top - touchtiles[self.direction].rect.bottom)
+            self.followers.extend(pygame.sprite.spritecollide(self, [plat, *cls.follow], False))
+            for follower in self.followers:
+                follower.transportmomentum[1] += change
+                follower.rect.y -= change
+                push(Direction.up, follower, mercy=False)
 
         elif self.direction == Direction.left:
             if self.rect.left - self.speed < 0:
+                change = self.rect.left
                 self.rect.left = 0
                 self.direction = Direction.down
             else:
                 if canmove[self.direction]:
+                    change = self.speed
                     self.rect.x -= self.speed
-                elif touchtiles[self.direction] and touchtiles[self.direction].rect.right != self.rect.left:
+                elif touchtiles[self.direction] and (diff := touchtiles[self.direction].rect.right != self.rect.left):
+                    change = diff
                     self.rect.left = touchtiles[self.direction].rect.right
                     self.direction = Direction.down
                 else:
                     self.direction = Direction.down
 
-            if followers := pygame.sprite.spritecollide(self, [plat, *cls.follow], False):
-                self.followers.extend(followers)
-                for follower in self.followers:
-                    follower.transportmomentum -= self.speed
-                    if canmove[self.direction]:
-                        follower.rect.x -= self.speed
-                    else:
-                        follower.rect.x -= abs(self.rect.left - touchtiles[self.direction].rect.right)
+            self.followers.extend(pygame.sprite.spritecollide(self, [plat, *cls.follow], False))
+            for follower in self.followers:
+                follower.rect.x -= change
+                follower.transportmomentum[0] -= change
+                push(Direction.left, follower, mercy=False)
 
         elif self.direction == Direction.down:
             if self.rect.bottom + self.speed > height:
+                change = height - self.rect.bottom
                 self.rect.bottom = height
                 self.direction = Direction.right
             else:
                 if canmove[self.direction]:
+                    change = self.speed
                     self.rect.y += self.speed
-                elif touchtiles[self.direction] and touchtiles[self.direction].rect.top != self.rect.bottom:
+                elif touchtiles[self.direction] and (diff := touchtiles[self.direction].rect.top != self.rect.bottom):
+                    change = diff
                     self.rect.bottom = touchtiles[self.direction].rect.top
                     self.direction = Direction.right
                 else:
@@ -1433,71 +1435,74 @@ class Elev(Tile):
             # lastcollide stops the player from seemingly hopping after running off an elevator
             # the reason behind hopping is that the elevator moves down, but the player doesn't get
             # pulled down because he has ceased contact with the elevator
-            if self.direction == Direction.down:
-                self.rect.y -= 5
-                followers = pygame.sprite.spritecollide(self, [plat, *cls.follow], False)
-                self.rect.y += 5
-                if followers:
-                    collision = True
-                    self.followers.extend(followers)
-                    for follower in self.followers:
-                        if follower.grounded:
-                            if follower.rect.left < self.rect.left:
-                                self.rect.x -= 2
-                                collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                                self.rect.x += 2
-                                for tile1 in collidedtiles:
-                                    if tile1.rect.top <= self.rect.top:
-                                        collision = False
-                                        break
-                            if follower.rect.right > self.rect.right:
-                                self.rect.x += 2
-                                collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
-                                self.rect.x -= 2
-                                for tile1 in collidedtiles:
-                                    if tile1.rect.top <= self.rect.top:
-                                        collision = False
-                                        break
-                        if collision:
-                            if canmove[self.direction]:
-                                follower.rect.y += self.speed
-                            else:
-                                follower.rect.y += abs(self.rect.top - touchtiles[self.direction].rect.top)
-                        follower.vertforce -= self.speed
+            # nvm i removed it a while ago and forgot :P
+            if self.direction != Direction.down:
+                return
+            self.rect.y -= self.speed + 1
+            self.followers.extend(pygame.sprite.spritecollide(self, [plat, *cls.follow], False))
+            self.rect.y += self.speed + 1
+            followers2 = pygame.sprite.spritecollide(self, [plat, *cls.follow], False)
+            for follower in self.followers:
+                collision = False
+                if follower.grounded:
+                    if follower.rect.left < self.rect.left:
+                        self.rect.x -= 2
+                        collidedtiles = pygame.sprite.spritecollide(self, localcollidetiles, False)
+                        self.rect.x += 2
+                        for tile1 in collidedtiles:
+                            if tile1.rect.top <= self.rect.top:
+                                collision = True
+                                break
+                    if follower.rect.right > self.rect.right:
+                        self.rect.x += 2
+                        collidedtiles = pygame.sprite.spritecollide(self, localcollidetiles, False)
+                        self.rect.x -= 2
+                        for tile1 in collidedtiles:
+                            if tile1.rect.top <= self.rect.top:
+                                collision = True
+                                break
+                    if collision:
+                        break
+                follower.rect.y += change
+                follower.transportmomentum[1] -= change
+                push(Direction.down, follower, mercy=False)
+                follower.vertforce -= self.speed
+            for follower in followers2:
+                follower.rect.top = self.rect.bottom
 
         elif self.direction == Direction.right:
             if self.rect.right + self.speed > width:
+                change = width - self.rect.right
                 self.rect.right = width
                 self.direction = Direction.up
             else:
                 if canmove[self.direction]:
+                    change = self.speed
                     self.rect.x += self.speed
-                elif touchtiles[self.direction] and touchtiles[self.direction].rect.left != self.rect.right:
+                elif touchtiles[self.direction] and (diff := touchtiles[self.direction].rect.left != self.rect.right):
+                    change = diff
                     self.rect.right = touchtiles[self.direction].rect.left
                     self.direction = Direction.up
                 else:
                     self.direction = Direction.up
 
-            if followers := pygame.sprite.spritecollide(self, [plat, *cls.follow], False):
-                self.followers.extend(followers)
-                for follower in self.followers:
-                    follower.transportmomentum += self.speed
-                    if canmove[self.direction]:
-                        follower.rect.x += self.speed
-                    else:
-                        follower.rect.x += abs(self.rect.right - touchtiles[self.direction].rect.left)
+            self.followers.extend(pygame.sprite.spritecollide(self, [plat, *cls.follow], False))
+            for follower in self.followers:
+                follower.rect.x += change
+                follower.transportmomentum[0] += change
+                push(Direction.right, follower, mercy=False)
 
         self.followers.clear()
 
 
 class Circuit(Tile):
     def __init__(self, x, y):
-        super().__init__("circuit", x, y)
+        super().__init__("circuit", x, y, layer=-1)
 
 
 class Switch(Tile):
     def __init__(self, x, y, ident):
-        super().__init__("switch", x, y, True)
+        super().__init__("switch", x, y, True, layer=1)
         self.ident = ident
         self.pressed = False
         self.imgcache = {
@@ -1525,8 +1530,6 @@ class Switch(Tile):
         else:
             # if you are still within the rect of the switch it won't be toggleable (to prevent accidental toggles)
             if not pygame.sprite.spritecollideany(self, [plat, *fallingtiles]):
-                pass
-            else:
                 self.pressed = False
                 self.image = self.imgcache[self.pressed]
                 self.mask = self.maskcache[self.pressed]
@@ -1535,25 +1538,25 @@ class Switch(Tile):
 # perhaps set door weight to high to stop piston pushes?
 class Door(Tile):
     def __init__(self, x, y, ident, startoff=False):
-        super().__init__("door", x, y, True)
+        super().__init__("door", x, y, True, weight=2, layer=1)
         self.ident = ident
         self.startoff = startoff
         self.on = not startoff
 
     def update(self, ident=-1):
         if not super().update():
-            if not self.startoff:
-                self.populategroups()
-            else:
+            if self.startoff:
                 self.kill()
-                self.add(doortiles, tiles)
+                self.add(doortiles, wireless)
+            else:
+                self.populategroups()
             self.on = not self.startoff
             return
 
         if self.ident == ident:
-            if sprites2.has(self):
+            if self.on:
                 self.kill()
-                self.add(doortiles, tiles)
+                self.add(doortiles, wireless)
             else:
                 self.populategroups()
             self.on = not self.on
@@ -1586,20 +1589,20 @@ class Turret(Tile):
 
             if self.cooldown <= 0:
 
-                powered = power(self.rect)
+                powered = power(self)
 
                 if powered[Direction.up]:
-                    projectiles.add(Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1],
-                                           Direction.down))
+                    Bullet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1],
+                           Direction.down).populategroups()
                 if powered[Direction.left]:
-                    projectiles.add(Bullet(self.rect.midright[0], self.rect.midright[1] - size / 8,
-                                           Direction.right))
+                    Bullet(self.rect.midright[0], self.rect.midright[1] - size / 8,
+                           Direction.right).populategroups()
                 if powered[Direction.down]:
-                    projectiles.add(Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
-                                           Direction.up))
+                    Bullet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4,
+                           Direction.up).populategroups()
                 if powered[Direction.right]:
-                    projectiles.add(Bullet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8,
-                                           Direction.left))
+                    Bullet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8,
+                           Direction.left).populategroups()
                 self.cooldown = self.firerate
                 if not mute:
                     sfx['shoot'].play()
@@ -1658,7 +1661,7 @@ class Light(Tile):
             return
 
         Light.polycache = shca.tiletopoly(solidtiles)
-        powered = power(self.rect)
+        powered = power(self)
 
         if powered[Direction.up]:
             self.lighting[0] = Lighting(self.rect.centerx, self.rect.centery, self.rect, Direction.down)
@@ -1749,7 +1752,7 @@ class Vortex(Tile):
 
 class Piston(Tile):
     def __init__(self, x, y, rotation=0, exact=False):
-        super().__init__("piston", x, y, convert_alpha=True, rotate=rotation)
+        super().__init__("piston", x, y, convert_alpha=True, rotate=rotation, layer=1)
         self.rotation = rotation
         self.child = None
         self.exact = exact
@@ -1765,7 +1768,7 @@ class Piston(Tile):
             self.child = PistonRod(self.rect.x, self.rect.y, self, self.rotation, exact=self.exact)
             self.child.populategroups()
 
-        self.child.update(power(self.rect, False, self.exact))
+        self.child.update(power(self, False, self.exact))
 
 
 class PistonRod(Tile):
@@ -1781,7 +1784,7 @@ class PistonRod(Tile):
         if not super().update():
             return
 
-        if not active and power(self.rect, False, self.exact):
+        if not active and power(self, False, self.exact):
             active = True
         if self.rotation % 2 == 0:
             self.rect.x = self.host.rect.x
@@ -1823,7 +1826,23 @@ class Diamond(Tile):
 
 class Glass(Tile):
     def __init__(self, x, y):
-        super().__init__("stealth/glass", x, y)
+        super().__init__("stealth/glass", x, y, convert_alpha=True)
+
+    def coverededge(self, direction: Direction = None):
+        return {
+            'up': True,
+            'left': True,
+            'down': True,
+            'right': True,
+        }
+
+    def coveredcorner(self, coverededges=None):
+        return {
+            'upleft': False,
+            'downleft': False,
+            'downright': False,
+            'upright': False,
+        }
 
 
 class Dropper(Tile):
@@ -1832,20 +1851,20 @@ class Dropper(Tile):
         self.ident = ident
         self.child = None
         if self.direction == Direction.up:
-            self.child = Droplet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1])
-        elif self.direction == Direction.left:
-            self.child = Droplet(self.rect.midright[0], self.rect.midright[1] - size / 8)
-        elif self.direction == Direction.down:
             self.child = Droplet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4)
-        elif self.direction == Direction.right:
+        elif self.direction == Direction.left:
             self.child = Droplet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8)
+        elif self.direction == Direction.down:
+            self.child = Droplet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1])
+        elif self.direction == Direction.right:
+            self.child = Droplet(self.rect.midright[0], self.rect.midright[1] - size / 8)
 
     def update(self, ident=-1):
         if not super().update():
             self.child.kill()
             return
 
-        if not self.child.alive() and (self.ident == ident or power(self.rect, False)):
+        if not self.child.alive() and (self.ident == ident or power(self, False)):
             self.child.populategroups()
             sfx['drop'].play()
 
@@ -1862,15 +1881,22 @@ class Droplet(Tile):
 
 
 class Conveyor(Tile):
-    def __init__(self, x, y, facing: Direction = Direction.left, speed=2):
+    def __init__(self, x, y, facing=Direction.left, speed=2):
         super().__init__("conveyor", x, y, flip=facing != Direction.left)
         self.facing = facing
+        if isinstance(facing, str):
+            if facing.lower() == 'l':
+                self.facing = Direction.left
+            elif facing.lower() == 'r':
+                self.facing = Direction.right
+            else:
+                raise TypeError("facing must be a Direction, 'l', or 'r'")
         self.speed = -speed if facing == Direction.left else speed
 
     def update(self):
         if not super().update():
             return
-        if not power(self.rect, False):
+        if not power(self, False):
             return
 
         self.rect.y -= 2
@@ -1880,87 +1906,115 @@ class Conveyor(Tile):
         for collision in collisions:
             collision.rect.x += self.speed
             if collision is plat:
-                collision.transportmomentum += self.speed
+                collision.transportmomentum[0] += self.speed
 
 
 class Conductor(Tile):
     def __init__(self, x, y):
         super().__init__("conductor", x, y, weight=-1)
         self.on = False
-        self.imgoff = self.image
-        self.imgon = pygame.image.load("assets/img/conductor2.png").convert()
+        self.imgcache = {
+            False: self.image,
+            True: pygame.image.load("assets/img/conductor2.png").convert(),
+        }
+        self.powersrc = None
 
-    def update(self):
+    def update(self) -> bool:
         if not super().update():
             return
 
-        on = power(self.rect, False)
-        if self.on is not on:
-            self.image = self.imgon if on else self.imgoff
-        self.on = on
+        on = power(self, False)
+        if self.on is not bool(on):
+            if not self.on:
+                self.powersrc = on
+            else:
+                power.conductorcache.remove(self)
+            self.on = not self.on
+            self.image = self.imgcache[self.on]
+        elif self.on and on is not self.powersrc and not isinstance(on, Rock):
+            self.on = False
+            self.image = self.imgcache[self.on]
+            power.conductorcache.remove(self)
 
 
 class Grappler(Tile):
     def __init__(self, x, y, ident, rotation=0, speed=10):
-        super().__init__("grappler", x, y, rotate=rotation)
+        super().__init__("grappler", x, y, rotate=rotation, layer=1)
         self.ident = ident
         self.rotation = rotation
         self.child = None
         self.speed = -speed if rotation < 2 else speed
+        self.trailcount = 0
+        self.channel = None
 
     def update(self, ident=-1, connected=False):
         if not super().update():
             if self.child is not None:
-                self.child.kill()
                 self.child = None
+                self.trailcount = 0
+                self.channel = None
             return
 
-        if self.child is not None and not self.child.groups():
-            self.child = None
-
-        if (self.child is None or not self.child.groups()) and ident == self.ident:
+        if connected:
             if self.rotation % 2 == 0:
                 self.rect.y += self.speed
-                blocked = pygame.sprite.spritecollide(self, solidtiles, False)
+            else:
+                self.rect.x += self.speed
+            self.trailcount += self.speed
+
+            if abs(self.trailcount) >= 32:
+                self.trailcount -= size * copysign(1, self.trailcount)
+                if self.rotation % 2 == 0:
+                    for trail in self.child.trails:
+                        if trail.rect.y == self.rect.y - self.trailcount:
+                            trail.kill()
+                            break
+                else:
+                    for trail in self.child.trails:
+                        if trail.rect.x == self.rect.x - self.trailcount:
+                            trail.kill()
+                            break
+
+            if self.channel is None:
+                self.channel = sfx['reel'].play(-1)
+
+            if pygame.sprite.collide_rect(self, self.child):
+                self.rect.x, self.rect.y = self.child.rect.x, self.child.rect.y
+                self.child.kill()
+                self.child = None
+                self.channel.stop()
+                self.channel = None
+            return
+
+        if self.child and not self.child.alive():
+            self.child = None
+
+        if not self.child and ident == self.ident:
+            tempgroup = [s for s in solidtiles if s != self]
+            if self.rotation % 2 == 0:
+                self.rect.y += self.speed
+                blocked = pygame.sprite.spritecollideany(self, tempgroup)
                 self.rect.y -= self.speed
             else:
                 self.rect.x += self.speed
-                blocked = pygame.sprite.spritecollide(self, solidtiles, False)
+                blocked = pygame.sprite.spritecollideany(self, tempgroup)
                 self.rect.x -= self.speed
 
             if not blocked:
                 if self.direction == Direction.up:
                     self.child = Hook(self.rect.midtop[0] - size / 2, self.rect.midtop[1] - size,
-                                      self.rect, self.rotation, self.speed)
+                                      self, self.rotation, self.speed)
                 elif self.direction == Direction.left:
                     self.child = Hook(self.rect.midleft[0] - size, self.rect.midleft[1] - size / 2,
-                                      self.rect, self.rotation, self.speed)
+                                      self, self.rotation, self.speed)
                 elif self.direction == Direction.down:
                     self.child = Hook(self.rect.midbottom[0] - size / 2, self.rect.midbottom[1],
-                                      self.rect, self.rotation, self.speed)
+                                      self, self.rotation, self.speed)
                 elif self.direction == Direction.right:
                     self.child = Hook(self.rect.midright[0], self.rect.midright[1] - size / 2,
-                                      self.rect, self.rotation, self.speed)
-                self.child.add(hooktiles)
-
-        if connected:
-            if self.rotation % 2 == 0:
-                if abs(self.rect.y - self.child.y) < abs(self.speed):
-                    self.rect.y = self.child.y
-                else:
-                    self.rect.y += self.speed
-            else:
-                if abs(self.rect.x - self.child.x) < abs(self.speed):
-                    self.rect.x = self.child.x
-                else:
-                    self.rect.x += self.speed
-
-            if self.rect.center == self.child.rect.center:
-                for trail in self.child.trails:
-                    trail.kill()
-                self.child.kill()
-                self.child = None
-            return
+                                      self, self.rotation, self.speed)
+                self.child.populategroups()
+                sfx['hook'].play()
 
         if self.child:
             self.child.update()
@@ -1968,38 +2022,57 @@ class Grappler(Tile):
 
 class Hook(Tile):
     def __init__(self, x, y, host: Grappler, rotation=0, speed=10):
-        super().__init__("hook", x, y, convert_alpha=True, rotate=rotation)
+        super().__init__("hook", x, y, convert_alpha=True, rotate=rotation, layer=1)
         self.host = host
+        self.rotation = rotation
         self.speed = speed
-        self.trails = pygame.sprite.Group()
+        self.trails = pygame.sprite.Group(HookTrail(self.x, self.y, self.rotation).populategroups())
+        self.trailcount = 0
         self.connected = False
 
     def update(self):
-        if not plat.alive:
-            pass
-
-        if self.connected:
-            self.host.update(connected=True)
-
-        if not pygame.sprite.spritecollideany(self, self.trails):
-            trail = HookTrail(self.x, self.y, self.host.rotation)
-            self.trails.add(trail)
-            hooktrails.add(trail)
-
-        if pygame.sprite.groupcollide(self.trails, [s for s in solidtiles if s != self and s != self.host],
-                                      False, False):
+        if not super().update():
             for trail in self.trails:
                 trail.kill()
             self.kill()
             return
 
-        if pygame.sprite.spritecollideany(self, [s for s in solidtiles if s != self and s != self.host]):
-            self.connected = True
+        if self.connected:
+            self.host.update(connected=True)
+            return
+
+        if pygame.sprite.groupcollide(self.trails, [s for s in solidtiles if s != self and s != self.host],
+                                      True, False):
+            self.kill()
+            return
+
+        if self.host.rotation % 2 == 0:
+            self.rect.y += self.speed
         else:
-            if self.host.rotation % 2 == 0:
-                self.rect.y += self.speed
+            self.rect.x += self.speed
+
+        if hit := pygame.sprite.spritecollideany(self, [s for s in solidtiles if s != self and s != self.host]):
+            self.connected = True
+            if self.direction == Direction.up:
+                self.rect.top = hit.rect.bottom
+            elif self.direction == Direction.left:
+                self.rect.left = hit.rect.right
+            elif self.direction == Direction.down:
+                self.rect.bottom = hit.rect.top
+            elif self.direction == Direction.right:
+                self.rect.right = hit.rect.left
+            return
+        else:
+            self.trailcount += self.speed
+
+        if abs(self.trailcount) >= size:
+            self.trailcount -= size * copysign(1, self.trailcount)
+            if self.rotation % 2 == 0:
+                trail = HookTrail(self.rect.x, self.rect.y - self.trailcount, self.host.rotation)
             else:
-                self.rect.x += self.speed
+                trail = HookTrail(self.rect.x - self.trailcount, self.rect.y, self.host.rotation)
+            trail.populategroups()
+            self.trails.add(trail)
 
 
 class HookTrail(TempObj):
@@ -2012,31 +2085,35 @@ class StickyElev(Elev):
     follow = pygame.sprite.Group()
 
     def __init__(self, x, y, speed=2):
-        super().__init__(x, y, speed)
+        super().__init__(x, y, speed, img="stickyelevator")
 
     def update(self):
-        if Direction in (Direction.up, Direction.left, Direction.down):
-            self.rect.x += 1
-            self.followers.extend(pygame.sprite.spritecollide(self, [plat, StickyElev.follow], False))
-            self.rect.x -= 1
-        if Direction in (Direction.left, Direction.down, Direction.right):
+        if Direction is not Direction.up:
             self.rect.y -= 1
-            self.followers.extend(pygame.sprite.spritecollide(self, [plat, StickyElev.follow], False))
+            self.followers.extend(
+                pygame.sprite.spritecollide(self, [s for s in StickyElev.follow if s.rect.x == self.rect.x], False))
             self.rect.y += 1
-        if Direction in (Direction.down, Direction.right, Direction.up):
+        if Direction is not Direction.left:
             self.rect.x -= 1
-            self.followers.extend(pygame.sprite.spritecollide(self, [plat, StickyElev.follow], False))
+            self.followers.extend(
+                pygame.sprite.spritecollide(self, [s for s in StickyElev.follow if s.rect.y == self.rect.y], False))
             self.rect.x += 1
-        if Direction in (Direction.right, Direction.up, Direction.left):
+        if Direction is not Direction.down:
             self.rect.y += 1
-            self.followers.extend(pygame.sprite.spritecollide(self, [plat, StickyElev.follow], False))
+            self.followers.extend(
+                pygame.sprite.spritecollide(self, [s for s in StickyElev.follow if s.rect.x == self.rect.x], False))
             self.rect.y -= 1
+        if Direction is not Direction.right:
+            self.rect.x += 1
+            self.followers.extend(
+                pygame.sprite.spritecollide(self, [s for s in StickyElev.follow if s.rect.y == self.rect.y], False))
+            self.rect.x -= 1
         super().update()
 
 
 class Sensor(Tile):
-    def __init__(self, img, x, y, ident=-1, rotation=0, remote=True):
-        super().__init__(img, x, y, rotate=rotation)
+    def __init__(self, img, x, y, ident=-1, convert_alpha=False, rotation=0, remote=True, layer=0):
+        super().__init__(img, x, y, convert_alpha=convert_alpha, rotate=rotation, layer=layer)
         self.ident = ident
         self.remote = remote
         self.on = False
@@ -2063,10 +2140,15 @@ class Transformer(Sensor):
     def __init__(self, x, y, ident=-1):
         super().__init__("transformer", x, y, ident, remote=False)
         self.lastpower = False
+        self.imgcache = {
+            False: self.image,
+            True: pygame.image.load("assets/img/transformer2.png").convert()
+        }
 
     def sense(self, ident=-1) -> bool:
         if self.ident == ident:
             self.lastpower = not self.lastpower
+            self.image = self.imgcache[self.lastpower]
         return self.lastpower
 
 
@@ -2074,17 +2156,22 @@ class Broadcaster(Sensor):
     def __init__(self, x, y, ident=-1):
         super().__init__("broadcaster", x, y, ident)
         self.lastpower = False
+        self.imgcache = {
+            False: self.image,
+            True: pygame.image.load("assets/img/broadcaster2.png").convert()
+        }
 
     def sense(self) -> bool:
-        if power(self.rect, False) is not self.lastpower:
+        if power(self, False) is not self.lastpower:
             self.lastpower = not self.lastpower
+            self.image = self.imgcache[self.lastpower]
             return True
         return False
 
 
 class Picker(Sensor):
     def __init__(self, x, y, ident=-1, rotation=0):
-        super().__init__("picker", x, y, ident, rotation=rotation)
+        super().__init__("picker", x, y, ident, convert_alpha=True, rotation=rotation)
 
     def sense(self) -> bool:
         contact = None
@@ -2107,23 +2194,84 @@ class Picker(Sensor):
 
         if contact:
             contact.kill()
+            sfx['pick'].play()
             return True
         return False
+
+
+class Tripwire(Sensor):
+    def __init__(self, x, y, ident=-1, rotation=0):
+        super().__init__("tripwire", x, y, ident, rotation=rotation)
+        self.rotation = rotation
+        self.child = Wire(self)
+        tiles.add(self.child)
+        self.speed = -size if self.rotation < 2 else size
+        self.prevhit = False
+
+    def sense(self) -> bool:
+        self.child.rect.x, self.child.rect.y = self.rect.x + 8, self.rect.y + 8
+        if not power(self, False):
+            self.child.rect.width, self.child.rect.y = 16, 16
+            self.child.update()
+            return False
+
+        tempgroup = [s for s in solidtiles if s != self]
+        while not (collision := pygame.sprite.spritecollideany(self.child, tempgroup)) and boundscheck(self.child):
+            if self.rotation % 2 == 0:
+                self.child.rect.y += self.speed
+            else:
+                self.child.rect.x += self.speed
+
+        if self.direction == Direction.up:
+            if collision:
+                self.child.rect.top = collision.rect.bottom
+            self.child.rect.height = self.rect.y + 8 - self.child.rect.top
+        elif self.direction == Direction.left:
+            if collision:
+                self.child.rect.left = collision.rect.right
+            self.child.rect.width = self.rect.x + 8 - self.child.rect.left
+        elif self.direction == Direction.down:
+            if collision:
+                self.child.rect.bottom = collision.rect.top
+            self.child.rect.height = self.child.rect.bottom - self.rect.y + 8
+            self.child.rect.y = self.rect.y + 8
+        elif self.direction == Direction.right:
+            if collision:
+                self.child.rect.right = collision.rect.left
+            self.child.rect.width = self.child.rect.right - self.rect.x + 8
+            self.child.rect.x = self.rect.x + 8
+        self.child.update()
+
+        if pygame.sprite.spritecollideany(self.child, [plat, *fallingtiles]):
+            if not self.prevhit:
+                self.prevhit = True
+                return True
+        else:
+            self.prevhit = False
+        return False
+
+
+class Wire(TempObj):
+    def __init__(self, host):
+        super().__init__(layer=1)
+        self.rect = pygame.rect.Rect(host.x + 8, host.y + 8, 16, 16)
+        self.image = pygame.Surface((self.rect.width, self.rect.height))
+        self.image.fill(colors.RED)
+
+    def update(self):
+        if not plat.alive:
+            return
+
+        self.image = pygame.Surface((self.rect.width, self.rect.height))
+        self.image.fill(colors.RED)
 
 
 # refresh every frame
 def redrawgamewindow():
     # ~10ms
 
-    # spritesbg -> sprites -> sprites2 -> projectiles -> particles
-    for sprite in spritesbg:
-        win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
-    for sprite in sprites:
-        win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
-    for sprite in sprites2:
-        win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
-    for sprite in projectiles:
-        win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
+    # tiles -> guards -> particles -> plat -> lighting
+    tiles.draw(win, screenshake)
     for sprite in guards:
         win.blit(sprite.imageL if sprite.facing == Direction.left else sprite.imageR,
                  (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
@@ -2138,7 +2286,7 @@ def redrawgamewindow():
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
         # for sprite in lightingtiles:
         #     for coord in sprite.visiblepolycache[0]:
-        #         pygame.draw.circle(win, colors.RED, coord, 1)
+        #         pygame.draw.circle(win, colors.RED, coord, 2)
         #     for coord in Light.polycache[0]:
         #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
         # for coord in Light.polycache[0]:
@@ -2158,7 +2306,8 @@ leveltext = font1.render("???", False, colors.WHITE)
 
 # main loop
 run = True
-# TODO: multi-level stages, boss
+# TODO: 6 - glass/tripwires, 7 - droppers/conveyors/pickers, 8 - transformers/broadcasters/conductors,
+#  9 - grapplers/sticky elevators, 10 - multi-level stages/boss
 while run:
     start_time = timeit.default_timer()
     clock.tick(framerate)
@@ -2221,10 +2370,16 @@ while run:
                         guards.add(Guard(levelx, levely))
                     if tile == 16:
                         conveyortiles.add(Conveyor(levelx, levely))
+                    if tile == 17:
+                        conductortiles.add(Conductor(levelx, levely))
+                    if tile == 19:
+                        circuittiles.add(Circuit(levelx, levely))
+                        bgloaded = True
+                        elevtiles.add(StickyElev(levelx, levely))
                 elif isinstance(tile, list):
                     if tile[0] == 1:
                         if tile[1] == 0:
-                            glasstiles.add(Glass(levelx, levely))
+                            blocktiles.add(Glass(levelx, levely))
                     if tile[0] == 4:
                         if tile[1] == 0:
                             esctiles.add(Diamond(levelx, levely))
@@ -2320,11 +2475,15 @@ while run:
                             conveyortiles.add(Conveyor(levelx, levely, tile[1], tile[2]))
                         else:
                             conveyortiles.add(Conveyor(levelx, levely, tile[1]))
-                    if tile[0] == 17:
+                    if tile[0] == 18:
                         if len(tile) == 3:
                             grapplertiles.add(Grappler(levelx, levely, tile[1], tile[2]))
                         else:
                             grapplertiles.add(Grappler(levelx, levely, tile[1]))
+                    if tile[0] == 19:
+                        circuittiles.add(Circuit(levelx, levely))
+                        bgloaded = True
+                        elevtiles.add(StickyElev(levelx, levely, tile[1]))
 
                 if not bgloaded:
                     spacetiles.add(Space(levelx, levely))
@@ -2337,26 +2496,26 @@ while run:
         if spawn is None:
             raise RuntimeError("No spawn found")
 
-        spritesbg.add(spacetiles, lavatiles, circuittiles)
-        sprites.add(blocktiles, spawn, rocktiles, turrettiles, lighttiles, pistonrodtiles, droppertiles, conveyortiles,
-                    conductortiles, hooktrails)
-        sprites2.add(esctiles, elevtiles, switchtiles, doortiles, pistontiles, grapplertiles, hooktiles)
-        projectiles.add(bullets)
         solidtiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles, pistontiles,
-                       pistonrodtiles, droppertiles, conveyortiles, conductortiles, bullets, droppertiles,
-                       conveyortiles, conductortiles, grapplertiles)
-        collidetiles.add(solidtiles, glasstiles)
+                       pistonrodtiles, droppertiles, conveyortiles, conductortiles, grapplertiles, bullets)
+        collidetiles.add(solidtiles)
         wireless.add(doortiles, droppertiles, grapplertiles)
-        tiles.add(spritesbg, sprites, sprites2)
+
+        tiles.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, elevtiles, circuittiles, switchtiles, doortiles,
+                  rocktiles, turrettiles, bullets, lighttiles, vortextiles, pistontiles, pistonrodtiles, droppertiles,
+                  droplets, conveyortiles, conductortiles, grapplertiles, hooktiles, hooktrails)
+        projectiles.add(bullets)
+
         fallingtiles.add([s for s in tiles if s.weight < 1])
         Elev.collidetiles.add([s for s in tiles if s not in circuittiles and s not in fallingtiles])
         Elev.follow.add([s for s in fallingtiles])
-        StickyElev.collidetiles.add([s for s in tiles if s not in circuittiles and s.weight > 1])
-        StickyElev.follow.add([s for s in fallingtiles] + [s for s in tiles if s not in circuittiles and s.weight <= 1])
+        StickyElev.collidetiles.add([s for s in Elev.collidetiles if s not in solidtiles])
+        StickyElev.follow.add([s for s in fallingtiles] + [s for s in solidtiles if s not in elevtiles and
+                                                           s.weight <= 1])
 
         if lighttiles or guards:
             stealth = True
-            Esc(-32, -32).add(esctiles, tiles, sprites)
+            Esc(-32, -32).populategroups()
             shadowsurf.fill(colors.DGRAY)
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
             lighttiles.update()
@@ -2389,7 +2548,8 @@ while run:
                 plat.vertforce = 0
                 animations['animlive'] = True
             plat.escaped = True
-    power.conductorcache = [s for s in [*conductortiles, *sensortiles] if s.on]
+    power.conductorcache.empty()
+    power.conductorcache.add([s for s in [*conductortiles, *sensortiles] if s.on])
     if animations['cutscene']:
         animate()
 
@@ -2414,6 +2574,7 @@ while run:
     switchtiles.update()
     turrettiles.update()
     pistontiles.update()
+    droppertiles.update()
     conveyortiles.update()
     hooktiles.update()
     projectiles.update()
@@ -2432,4 +2593,6 @@ while run:
                                        screen.get_size()), (0, 0))
 
     # print(timeit.default_timer() - start_time)
+    # print(1 / (timeit.default_timer() - start_time))
+    # print(f'*{clock.get_fps()}')
 pygame.quit()
