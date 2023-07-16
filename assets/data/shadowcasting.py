@@ -19,15 +19,6 @@ def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> l
         coveredcorners = tile.coveredcorner(coverededges)
 
         if hasattr(tile, 'rect'):
-            if not coverededges['up'] or not coverededges['left'] or not coveredcorners['upleft']:
-                corners.add((tile.rect.topleft[0] - 1, tile.rect.topleft[1] - 1))
-            if not coverededges['left'] or not coverededges['down'] or not coveredcorners['downleft']:
-                corners.add((tile.rect.bottomleft[0] - 1, tile.rect.bottomleft[1] + 1))
-            if not coverededges['down'] or not coverededges['right'] or not coveredcorners['downright']:
-                corners.add((tile.rect.bottomright[0] + 1, tile.rect.bottomright[1] + 1))
-            if not coverededges['right'] or not coverededges['up'] or not coveredcorners['upright']:
-                corners.add((tile.rect.topright[0] + 1, tile.rect.topright[1] - 1))
-
             if not coverededges['up']:
                 edges.add((tile.rect.topleft, tile.rect.topright))
             if not coverededges['left']:
@@ -37,23 +28,31 @@ def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> l
             if not coverededges['right']:
                 edges.add((tile.rect.topright, tile.rect.bottomright))
 
-    return [list(corners), list(edges)]
+            if not coveredcorners['upleft']:
+                corners.add((tile.rect.topleft[0] - 1, tile.rect.topleft[1] - 1))
+            if not coveredcorners['downleft']:
+                corners.add((tile.rect.bottomleft[0] - 1, tile.rect.bottomleft[1] + 1))
+            if not coveredcorners['downright']:
+                corners.add((tile.rect.bottomright[0] + 1, tile.rect.bottomright[1] + 1))
+            if not coveredcorners['upright']:
+                corners.add((tile.rect.topright[0] + 1, tile.rect.topright[1] - 1))
+
+    return [list(corners), tiletoedges(tiles)]
 
 
 def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Coord]:
     corners = set()
     for tile in tiles:
-        # noinspection PyUnresolvedReferences
         coverededges = tile.coverededge()
 
         # the pixel diagonal to the corner so that the ray can go past
-        if not coverededges[0] or not coverededges[1]:
+        if not coverededges['up'] and not coverededges['left']:
             corners.add((tile.rect.topleft[0] - 1, tile.rect.topleft[1] - 1))
-        if not coverededges[1] or not coverededges[2]:
+        if not coverededges['left'] and not coverededges['down']:
             corners.add((tile.rect.bottomleft[0] - 1, tile.rect.bottomleft[1] + 1))
-        if not coverededges[2] or not coverededges[3]:
+        if not coverededges['down'] and not coverededges['right']:
             corners.add((tile.rect.bottomright[0] + 1, tile.rect.bottomright[1] + 1))
-        if not coverededges[3] or not coverededges[0]:
+        if not coverededges['right'] and not coverededges['up']:
             corners.add((tile.rect.topright[0] + 1, tile.rect.topright[1] - 1))
 
     return list(corners)
@@ -62,16 +61,15 @@ def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -
 def tiletoedges(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Line]:
     edges = set()
     for tile in tiles:
-        # noinspection PyUnresolvedReferences
         coverededges = tile.coverededge()
 
-        if not coverededges[0]:
+        if not coverededges['up']:
             edges.add((tile.rect.topleft, tile.rect.topright))
-        if not coverededges[1]:
+        if not coverededges['left']:
             edges.add((tile.rect.bottomleft, tile.rect.topleft))
-        if not coverededges[2]:
+        if not coverededges['down']:
             edges.add((tile.rect.bottomright, tile.rect.bottomleft))
-        if not coverededges[3]:
+        if not coverededges['right']:
             edges.add((tile.rect.topright, tile.rect.bottomright))
 
     return list(edges)
@@ -172,10 +170,10 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
     validtiles = [s for s in tiles if s.rect is not hostrect]
     for corner in corners:
         vec = (pygame.math.Vector2(corner) - pygame.math.Vector2(start)).normalize()
-        floatpos = list(start) + vec
+        floatpos = list(start)
         tempsprite = Demo(pygame.rect.Rect(0, 0, 1, 1))
         tempsprite.rect.center = floatpos
-        while not pygame.sprite.spritecollideany(tempsprite, validtiles) and \
+        while not (collision := pygame.sprite.spritecollideany(tempsprite, validtiles)) and \
                 0 <= floatpos[0] <= width and 0 <= floatpos[1] <= height:
             floatpos += vec
             if vec.x < 0:
@@ -188,8 +186,6 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
                 tempsprite.rect.centery = ceil(floatpos[1])
             # tempsprite.rect.center = floatpos
 
-        # if lower than intersection, round higher, else lower
-        floatpos -= vec
         # i set the positives to ceil because they didn't work otherwise
         if vec.x < 0:
             floatpos[0] = ceil(floatpos[0])
