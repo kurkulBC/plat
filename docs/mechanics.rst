@@ -27,30 +27,30 @@ Misc
 
 ``power()``
 ~~~~~~~~~~~
-.. autofunction:: game.power
+.. autofunction:: game::power
 
 Checks for if a tile has power that frame.
 
 ``glitch()``
 ~~~~~~~~~~~~
-.. autofunction:: game.glitch
+.. autofunction:: game::glitch
 
 ``animate()``
 ~~~~~~~~~~~~~
-.. autofunction:: game.animate
+.. autofunction:: game::animate
 
 Creates an animation using in-game mechanics at the start of a select few levels. Animations
 are stored inside the function.
 
 ``shake``
 ~~~~~~~~~
-.. autofunction:: game.shake
+.. autofunction:: game::shake
 
 Called to cause screenshake.
 
 ``push``
 ~~~~~~~~
-.. autofunction:: game.push
+.. autofunction:: game::push
 
 Recursive function that handles the majority of cases where an object needs to push another.
 However, for simple cases like player collision, it is not needed.
