@@ -16,7 +16,10 @@ from math import dist, copysign
 # init ~1.7s
 # pygame.init()
 # init ~0.1 :)
-pygame.mixer.init()
+try:
+    pygame.mixer.init()
+except pygame.error:
+    pass
 pygame.font.init()
 
 hax.active = False
@@ -83,7 +86,7 @@ wireless = pygame.sprite.Group()
 # load sound
 ost = pygame.mixer.music
 sfx = {
-    # like this so it doesn't run an error
+    # like this so it doesn't return an error
     s: pygame.mixer.Sound(f"assets/sfx/crush.ogg") for s in
     [
         'crush',
