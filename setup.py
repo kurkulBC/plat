@@ -17,19 +17,12 @@ setuptools.setup(
 
     description="Simple Platformer",
     long_description=long_description,
-    license='Apache License Version 2.0',
 
     packages=setuptools.find_packages(),
     platforms='any',
 
     install_requires=[
-        'regex>=2018.01.10',
-        'numpy<1.17.0',
-        'pathlib>=1.0',
-        'pyyaml',
-        'requests',
-        'funcsigs>=1.0.2',
-        'sentencepiece>=0.1.8',
-        'packaging'
+        'pygame-ce>=2.3.0',
+        'glitch-this>=1.0.2',
     ],
 )
