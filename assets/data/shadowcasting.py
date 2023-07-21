@@ -11,6 +11,10 @@ Line = tuple[Coord, Coord]
 
 
 def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> list[set[Coord], set[Line]]:
+    """
+    :param tiles: a tile group
+    :return: the visible corners and edges of the tiles
+    """
     corners = set()
     edges = set()
     for tile in tiles:
@@ -41,6 +45,10 @@ def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> l
 
 
 def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Coord]:
+    """
+    :param tiles: a tile group
+    :return: the visible corners of the tiles
+    """
     corners = set()
     for tile in tiles:
         coverededges = tile.coverededge()
@@ -59,6 +67,10 @@ def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -
 
 
 def tiletoedges(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Line]:
+    """
+    :param tiles: a tile group
+    :return: the visible edges of the tiles
+    """
     edges = set()
     for tile in tiles:
         coverededges = tile.coverededge()
@@ -75,7 +87,12 @@ def tiletoedges(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> 
     return list(edges)
 
 
-def segmentintersect(line1: Line, line2: Line):
+def segmentintersect(line1: Line, line2: Line) -> Coord | bool | str:
+    """
+    :param line1: The first line
+    :param line2: The second line
+    :return: The intersection of the lines if there is exactly 1.
+    """
     m1 = m2 = b1 = b2 = None
 
     try:
@@ -136,11 +153,20 @@ def segmentintersect(line1: Line, line2: Line):
 
 
 # TODO: map borders not in corners
-def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line], direction: Direction = None) \
-        -> list[Coord]:
+def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line], tiles=None,
+                   direction: Direction = None) -> list[Coord]:
+    """
+    :param start: The start coordinate
+    :param corners: The corners to be checked
+    :param edges: The edges to be checked
+    :param tiles: The tiles to be submitted to checkvisible
+    :param direction: The direction to check
+    :return: Every corner in the given corners that is visible to the start coordinate
+    in the given direction
+    """
     visible = []
     for corner in corners:
-        if not checkvisible(start, corner, direction):
+        if not checkvisible(start, corner, direction, tiles=tiles):
             continue
 
         for edge in edges:
@@ -153,7 +179,17 @@ def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line]
 
 def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, start: Coord, corners: Iterator[Coord],
                       edges: Iterator[Line], direction: Direction = None) -> list[Coord]:
-    corners = visiblecorners(start, corners, edges, direction)
+    """
+    :param tiles: The tiles to use for collision
+    :param hostrect: The rect of the producing light tile
+    :param start: The start coordinate
+    :param corners: The corners to be checked
+    :param edges: The edges to be checked
+    :param direction: The direction to check
+    :return: Every corner in the given corners that is visible to the start coordinate
+    in the given direction, alongside coordinates of where light going past corners hits
+    """
+    corners = visiblecorners(start, corners, edges, tiles, direction)
     if direction == Direction.up:
         corners.append(hostrect.topright)
         corners.append(hostrect.topleft)
@@ -170,7 +206,8 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
     validtiles = [s for s in tiles if s.rect is not hostrect]
     for corner in corners:
         vec = (pygame.math.Vector2(corner) - pygame.math.Vector2(start)).normalize()
-        floatpos = list(start)
+        vec.scale_to_length(size - 1)
+        floatpos = list(corner)
         tempsprite = Demo(pygame.rect.Rect(0, 0, 1, 1))
         tempsprite.rect.center = floatpos
         while not (collision := pygame.sprite.spritecollideany(tempsprite, validtiles)) and \
@@ -184,25 +221,57 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
                 tempsprite.rect.centery = floor(floatpos[1])
             if vec.y > 0:
                 tempsprite.rect.centery = ceil(floatpos[1])
-            # tempsprite.rect.center = floatpos
+        if corner == (32 * 8 - 1, 32 * 30 + 1):
+            print(collision, collision.rect.x / 32, collision.rect.y / 32, floatpos)
 
-        # i set the positives to ceil because they didn't work otherwise
-        if vec.x < 0:
-            floatpos[0] = ceil(floatpos[0])
-        if vec.x > 0:
-            floatpos[0] = ceil(floatpos[0])
-        if vec.y < 0:
-            floatpos[1] = ceil(floatpos[1])
-        if vec.y > 0:
-            floatpos[1] = ceil(floatpos[1])
-        floatpos = tuple(floatpos)
-        held.append(floatpos)
-        tempsprite.rect.center = hostrect.center
+        # noinspection PyShadowingNames
+        def collidecheck(start, floatpos, vec, collision):
+            if vec.x < 0:
+                if collision:
+                    point = segmentintersect((start, floatpos), (collision.rect.bottomright,
+                                                                 collision.rect.topright))
+                    if isinstance(point, tuple):
+                        return point
+                elif floatpos[0] < 0:
+                    floatpos[0] = 0
+            if vec.x > 0:
+                if collision:
+                    point = segmentintersect((start, floatpos), (collision.rect.topleft,
+                                                                 collision.rect.bottomleft))
+                    if isinstance(point, tuple):
+                        return point
+                elif floatpos[0] > width:
+                    floatpos[0] = width
+            if vec.y < 0:
+                if collision:
+                    point = segmentintersect((start, floatpos), (collision.rect.bottomleft,
+                                                                 collision.rect.bottomright))
+                    if isinstance(point, tuple):
+                        return point
+                elif floatpos[1] < 0:
+                    floatpos[1] = 0
+            if vec.y > 0:
+                if collision:
+                    point = segmentintersect((start, floatpos), (collision.rect.topright,
+                                                                 collision.rect.topleft))
+                    if isinstance(point, tuple):
+                        return point
+                elif floatpos[1] > height:
+                    floatpos[1] = height
+            if corner == (32 * 8 - 1, 32 * 30 + 1):
+                print(floatpos)
+            return floatpos
+
+        held.append(tuple(collidecheck(start, floatpos, vec, collision)))
     # print(corners)
     return corners + held
 
 
 def visibleedges(viscorners: list[Coord]) -> list[Line]:
+    """
+    :param viscorners: corners that are visible to the source
+    :return: list of all horizontal and vertical lines that are visible to the source
+    """
     visible = []
     for i in range(0, len(viscorners)):
         for j in range(i + 1, len(viscorners)):
@@ -213,7 +282,14 @@ def visibleedges(viscorners: list[Coord]) -> list[Line]:
     return visible
 
 
-def checkvisible(start: Coord, end: Coord, *directions: Direction) -> bool:
+def checkvisible(start: Coord, end: Coord, *directions: Direction, tiles: pygame.sprite.Group = None) -> bool:
+    """
+    :param start: The start coordinate
+    :param end: The desired end coordinate
+    :param directions: A list of directions to check for visibility in
+    :param tiles: optional parameter that, if not None, will evaluate every tile inside for collisions
+    :return: Whether the end is visible from the start in every direction given
+    """
     up = pygame.math.Vector2(0, -1)
     left = pygame.math.Vector2(-1, 0)
     down = pygame.math.Vector2(0, 1)
@@ -259,5 +335,10 @@ def checkvisible(start: Coord, end: Coord, *directions: Direction) -> bool:
         if abs(vec.angle_to(right)) > 91 or \
                 abs(vec.angle_to(up)) > 91:
             return False
+
+    if tiles:
+        for tile in tiles:
+            if tile.rect.clipline(start, end) and type(tile).__name__ not in ("Light", "Glass"):
+                return False
 
     return True

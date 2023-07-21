@@ -506,6 +506,14 @@ class Particle(object):
 
 # surrounding check for a tile's connection to power
 def power(sprite: pygame.sprite.Sprite, aslist=True, exact=False) -> dict[Direction, pygame.sprite.Sprite]:
+    """
+    :param sprite: the sprite to power
+    :param aslist: returns power as a dict if turned on, else bool
+    :param exact: only counts being powered from a direction if the
+    power source is exactly aligned
+    :return: dict of (direction -> sprite powered from direction?),
+    or, if aslist is False, bool of if the sprite has any power
+    """
     powered = {
         Direction.up: None,
         Direction.left: None,
@@ -570,15 +578,23 @@ power.conductorcache = pygame.sprite.Group()
 
 # image glitching
 def glitch(image):
+    """
+    :param image: image to apply a glitch effect to
+    :return: the image after the glitch effect is applied
+    """
     global glitchimg
     random.seed(random.randint(1, 20000000))
     x = random.random()
     glitchimg = glitcher.glitch_image(src_img=image, glitch_amount=5, seed=x, color_offset=True, frames=1)
     glitchimg.save(r"assets\img\anims\glitchimg.png", format="PNG")
+    return glitchimg
 
 
 # anim system
 def animate():
+    """
+    :return: nothing
+    """
     global animations
     global shadowsurf
     global zoom
@@ -683,6 +699,14 @@ def animate():
 
 # screenshake
 def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=1, yshakedecay=1):
+    """
+    :param shakeduration: how long the shake lasts
+    :param xshakeintensity: how severe the shake is horizontally (in pixels)
+    :param yshakeintensity: how severe the shake is vertically (in pixels)
+    :param xshakedecay: how many pixels xshakeintensity decreases per frame
+    :param yshakedecay: how many pixels yshakeintensity decreases per frame
+    :return: nothing
+    """
     global shaketime, shakeintensity, shakedecay
 
     shaketime = shakeduration
@@ -693,6 +717,14 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 # push things around
 # entities won't push themselves, but safesprites won't be pushed by instigators
 def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: list = None, weight=None, mercy=True):
+    """
+    :param direction: the direction to push
+    :param instigators: the tiles that are pushing
+    :param safesprites: the tiles that should not be pushed this call
+    :param weight: how powerful the push force is, tiles with a higher weight won't be pushed
+    :param mercy: if off, collisions with lower weight will effectively be killed
+    :return: nothing
+    """
     if direction not in Direction:
         raise ValueError("Direction required as input")
     if not isinstance(safesprites, list):
@@ -715,7 +747,7 @@ def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: 
                 nextcollide.append(collision)
             else:
                 if not mercy:
-                    entity.kill()
+                    entity.rect.x, entity.rect.y = -32, -32
                     continue
                 if direction == Direction.up:
                     entity.rect.top = collision.rect.bottom
@@ -2366,13 +2398,16 @@ def redrawgamewindow():
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     if stealth:
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
-        # for sprite in lightingtiles:
-        #     for coord in sprite.visiblepolycache[0]:
-        #         pygame.draw.circle(win, colors.RED, coord, 2)
+        for sprite in lightingtiles:
+            for coord in sprite.visiblepolycache[0]:
+                pygame.draw.circle(win, colors.RED, coord, 2)
         #     for coord in Light.polycache[0]:
         #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
-        for coord in Light.polycache[0]:
-            pygame.draw.circle(win, colors.RED, coord, 2)
+        # for coord in Light.polycache[0]:
+        #     pygame.draw.circle(win, colors.RED, coord, 2)
+        vec = (pygame.math.Vector2(32 * 8 - 1, 32 * 30 + 1) - pygame.math.Vector2(6 * 32 + 16, 26 * 32 - 16))
+        vec.scale_to_length(size - 1)
+        pygame.draw.line(win, colors.RED, [32 * 8 - 1, 32 * 30 + 1] + vec, (6 * 32 + 16, 26 * 32 - 16))
 
     # ~1ms
     pygame.display.flip()
