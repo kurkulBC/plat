@@ -11,10 +11,6 @@ Line = tuple[Coord, Coord]
 
 
 def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> list[set[Coord], set[Line]]:
-    """
-    :param tiles: a tile group
-    :return: the visible corners and edges of the tiles
-    """
     corners = set()
     edges = set()
     for tile in tiles:
@@ -45,10 +41,6 @@ def tiletopoly(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> l
 
 
 def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Coord]:
-    """
-    :param tiles: a tile group
-    :return: the visible corners of the tiles
-    """
     corners = set()
     for tile in tiles:
         coverededges = tile.coverededge()
@@ -67,10 +59,6 @@ def tiletocorners(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -
 
 
 def tiletoedges(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> set[Line]:
-    """
-    :param tiles: a tile group
-    :return: the visible edges of the tiles
-    """
     edges = set()
     for tile in tiles:
         coverededges = tile.coverededge()
@@ -88,11 +76,6 @@ def tiletoedges(tiles: pygame.sprite.Group | Iterator[pygame.sprite.Sprite]) -> 
 
 
 def segmentintersect(line1: Line, line2: Line) -> Coord | bool | str:
-    """
-    :param line1: The first line
-    :param line2: The second line
-    :return: The intersection of the lines if there is exactly 1.
-    """
     m1 = m2 = b1 = b2 = None
 
     try:
@@ -155,15 +138,6 @@ def segmentintersect(line1: Line, line2: Line) -> Coord | bool | str:
 # TODO: map borders not in corners
 def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line], tiles=None,
                    direction: Direction = None) -> list[Coord]:
-    """
-    :param start: The start coordinate
-    :param corners: The corners to be checked
-    :param edges: The edges to be checked
-    :param tiles: The tiles to be submitted to checkvisible
-    :param direction: The direction to check
-    :return: Every corner in the given corners that is visible to the start coordinate
-    in the given direction
-    """
     visible = []
     for corner in corners:
         if not checkvisible(start, corner, direction, tiles=tiles):
@@ -179,16 +153,6 @@ def visiblecorners(start: Coord, corners: Iterator[Coord], edges: Iterator[Line]
 
 def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, start: Coord, corners: Iterator[Coord],
                       edges: Iterator[Line], direction: Direction = None) -> list[Coord]:
-    """
-    :param tiles: The tiles to use for collision
-    :param hostrect: The rect of the producing light tile
-    :param start: The start coordinate
-    :param corners: The corners to be checked
-    :param edges: The edges to be checked
-    :param direction: The direction to check
-    :return: Every corner in the given corners that is visible to the start coordinate
-    in the given direction, alongside coordinates of where light going past corners hits
-    """
     corners = visiblecorners(start, corners, edges, tiles, direction)
     if direction == Direction.up:
         corners.append(hostrect.topright)
@@ -268,10 +232,6 @@ def rayvisiblecorners(tiles: pygame.sprite.Group, hostrect: pygame.rect.Rect, st
 
 
 def visibleedges(viscorners: list[Coord]) -> list[Line]:
-    """
-    :param viscorners: corners that are visible to the source
-    :return: list of all horizontal and vertical lines that are visible to the source
-    """
     visible = []
     for i in range(0, len(viscorners)):
         for j in range(i + 1, len(viscorners)):
@@ -283,13 +243,6 @@ def visibleedges(viscorners: list[Coord]) -> list[Line]:
 
 
 def checkvisible(start: Coord, end: Coord, *directions: Direction, tiles: pygame.sprite.Group = None) -> bool:
-    """
-    :param start: The start coordinate
-    :param end: The desired end coordinate
-    :param directions: A list of directions to check for visibility in
-    :param tiles: optional parameter that, if not None, will evaluate every tile inside for collisions
-    :return: Whether the end is visible from the start in every direction given
-    """
     up = pygame.math.Vector2(0, -1)
     left = pygame.math.Vector2(-1, 0)
     down = pygame.math.Vector2(0, 1)

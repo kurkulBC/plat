@@ -1,0 +1,18 @@
+site_name: Plat Docs
+
+markdown_extensions:
+    - toc:
+        permalink: "#"
+
+plugins:
+    - mkdocstrings:
+        default_handler: python
+
+nav:
+    - Home: 'index.md'
+    - tiles: 'tiles.md'
+    - mechanics: 'mechanics.md'
+    - modding: 'modding.md'
+    - shadowcasting: 'shadowcasting.md'
+
+theme: readthedocs
