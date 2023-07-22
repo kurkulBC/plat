@@ -5,9 +5,8 @@ build:
   tools:
     python: "3.11"
 
-sphinx:
-   configuration: docs/conf.py
-   fail_on_warning: true
+mkdocs:
+  configuration: mkdocs.yaml
 
 python:
    install:
