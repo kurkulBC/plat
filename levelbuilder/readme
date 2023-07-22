@@ -6,15 +6,29 @@ color codes:
     spawn - 0, 255, 0
     lava - 255, 0, 0
     escape - 0, 0, 255
-    elevator - 255, 0, 255
+    elevator - 255, 0, 255 [(0-2-?)speed]
     circuit - 255, 128, 255
-    switch - 255, 128, 128 [x]
-    door - 128, 60, 60 [x, y(0-0-?)locked tile]
+    switch - 255, 128, 128 [id]
+    door - 128, 60, 60 [id, (0-0-?)locked tile]
     hotrock - 128, 0, 0
-    turret - 255, 0, 128 [z(0-60-128)firerate]
+    turret - 255, 0, 128 [(0-60-128)firerate]
     light - 192, 192, 192
     vortex - N/A
-    piston - 100, 100, 100 [z(0-0-3)rotation]
+    piston - 100, 100, 100 [(0-0-3)rotation]
+    guard - 32, 32, 32
+    dropper - 196, 128, 0 [id, (0-0-3)rotation]
+    conveyor - 128, 128, 0 [(0-0-3)rotation]
+    conductor - 128, 128, 128
+    grappler - 64, 128, 196 [id, (0-0-3)rotation]
+    stickyelev - 200, 196, 0
+    transformer - 196, 196, 196 [id]
+    broadcaster - 197, 197, 197 [id]
+    picker - 198, 198, 198 [id, (0-0-3)rotation]
+    tripwire - 199, 199, 199 [id, (0-0-3)rotation]
+
+    diamond - 0, 255, 255
+    glass - 64, 64, 64
+    magma - 196, 0, 0
 
     (x is ID, y is special attribute)
     value range format: (minval-defaultval-maxval)
@@ -35,12 +49,28 @@ tile codes:
     light - 11
     vortex - 12
     piston - 13
+    guard - 14
+    dropper - 15
+    conveyor - 16
+    conductor - 17
+    grappler - 18
+    stickyelev - 19
+    transformer - 20
+    broadcaster - 21
+    picker - 22
+    tripwire - 23
+
+alt:
+    diamond: [4, 0]
+    glass: [1, 0]
+    magma: [3, 0]
+
 
 multiple spawns are not supported
 
-switches behind doors are not supported, nor are any forms of putting multiple tiles on one grid space
+any form of putting multiple unrelated tiles on one grid space in an input img is not supported
 edit the level data to do this
 
 2) run "converter.py"
 
-3) level data will be outputted in the console
+3) level data will be output to the console
