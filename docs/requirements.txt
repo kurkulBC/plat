@@ -1,3 +1,4 @@
-sphinx==7.0.1
+mkdocs==1.4.3
+mkdocstrings==0.22.0
 pygame-ce==2.3.0
 glitch-this==1.0.2
