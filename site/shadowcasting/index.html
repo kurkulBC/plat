@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>shadowcasting - Plat Docs</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "shadowcasting";
+        var mkdocs_page_input_path = "shadowcasting.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Plat Docs
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../tiles/">tiles</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../mechanics/">mechanics</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../modding/">modding</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">shadowcasting</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#utility">Utility</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#coord">Coord</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#line">Line</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#segmentintersect">segmentintersect()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.segmentintersect">assets.data.shadowcasting.segmentintersect</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#checkvisible">checkvisible()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.checkvisible">assets.data.shadowcasting.checkvisible</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#flattening">Flattening</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#tiletopoly">tiletopoly()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.tiletopoly">assets.data.shadowcasting.tiletopoly</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tiletocorners">tiletocorners()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.tiletocorners">assets.data.shadowcasting.tiletocorners</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tiletoedges">tiletoedges()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.tiletoedges">assets.data.shadowcasting.tiletoedges</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#calculation">Calculation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#visiblecorners">visiblecorners()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.visiblecorners">assets.data.shadowcasting.visiblecorners</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#rayvisiblecorners">rayvisiblecorners()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.rayvisiblecorners">assets.data.shadowcasting.rayvisiblecorners</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#visibleedges">visibleedges()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#assets.data.shadowcasting.visibleedges">assets.data.shadowcasting.visibleedges</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Plat Docs</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a> &raquo;</li>
+      <li>shadowcasting</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="shadowcasting">Shadowcasting<a class="headerlink" href="#shadowcasting" title="Permanent link">#</a></h1>
+<p><code>shadowcasting.py</code> contains several methods which help to "shadowcast", a process
+similar to raytracing but much faster.</p>
+<h2 id="utility">Utility<a class="headerlink" href="#utility" title="Permanent link">#</a></h2>
+<h3 id="coord">Coord<a class="headerlink" href="#coord" title="Permanent link">#</a></h3>
+<p>A tuple of 2 ints.</p>
+<h3 id="line">Line<a class="headerlink" href="#line" title="Permanent link">#</a></h3>
+<p>A 2 <a href="#Coord">Coord</a> tuple.</p>
+<h3 id="segmentintersect"><code>segmentintersect()</code><a class="headerlink" href="#segmentintersect" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.segmentintersect"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">segmentintersect</span><span class="p">(</span><span class="n">line1</span><span class="p">:</span> <span class="n">Line</span><span class="p">,</span> <span class="n">line2</span><span class="p">:</span> <span class="n">Line</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Coord</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">m1</span> <span class="o">=</span> <span class="n">m2</span> <span class="o">=</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b2</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">m1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">linear_regression</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line1</span><span class="p">],</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line1</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">statistics</span><span class="o">.</span><span class="n">StatisticsError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">m2</span><span class="p">,</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">linear_regression</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line2</span><span class="p">],</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line2</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">statistics</span><span class="o">.</span><span class="n">StatisticsError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">m1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">m2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="s1">&#39;equal lines&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="s1">&#39;parallel undefined lines&#39;</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">m1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b2</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y2</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">m2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">m1</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b1</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y1</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">m1</span> <span class="o">==</span> <span class="n">m2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b1</span> <span class="o">==</span> <span class="n">b2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;equal lines&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="s1">&#39;parallel lines&#39;</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">b2</span> <span class="o">-</span> <span class="n">b1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">m1</span> <span class="o">-</span> <span class="n">m2</span><span class="p">)</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">m1</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b1</span><span class="p">)</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">m2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b2</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">y1</span> <span class="o">==</span> <span class="n">y2</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">line1</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">line1</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="s1">&#39;outside of line1 domain&#39;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">line1</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">line1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">line1</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="s1">&#39;outside of line1 range&#39;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">line2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">line2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="s1">&#39;outside of line2 domain&#39;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">line2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="n">intersection</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">line2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">line2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="s1">&#39;outside of line2 range&#39;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">intersection</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns the intersection of the lines if there is exactly 1.
+If there are no intersections, returns a bool.
+If there are infinite intersections, returns a string that evaluates to True.</p>
+<h3 id="checkvisible"><code>checkvisible()</code><a class="headerlink" href="#checkvisible" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.checkvisible"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">checkvisible</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Coord</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Coord</span><span class="p">,</span> <span class="o">*</span><span class="n">directions</span><span class="p">:</span> <span class="n">Direction</span><span class="p">,</span> <span class="n">tiles</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Group</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">down</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">upleft</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">downleft</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">downright</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">upright</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="o">-</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">up</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">upleft</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">upright</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">left</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="mi">46</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">downleft</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">269</span> <span class="ow">or</span> \
+                <span class="mi">46</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">upleft</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">269</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">down</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">downright</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">downleft</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">right</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">upright</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">downright</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">upleft</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">up</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">left</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">downleft</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">left</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="mi">91</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">down</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">269</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">downright</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="mi">91</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">down</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">269</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">right</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">Direction</span><span class="o">.</span><span class="n">upright</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">right</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span> <span class="ow">or</span> \
+                <span class="nb">abs</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">angle_to</span><span class="p">(</span><span class="n">up</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">91</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">tiles</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">tiles</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">clipline</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">tile</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Light&quot;</span><span class="p">,</span> <span class="s2">&quot;Glass&quot;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="kc">True</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns whether the end is visible from the start in every direction given.
+Directions submitted must be of class Direction.</p>
+<h2 id="flattening">Flattening<a class="headerlink" href="#flattening" title="Permanent link">#</a></h2>
+<h3 id="tiletopoly"><code>tiletopoly()</code><a class="headerlink" href="#tiletopoly" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.tiletopoly"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">tiletopoly</span><span class="p">(</span><span class="n">tiles</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Group</span> <span class="o">|</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="n">Coord</span><span class="p">],</span> <span class="nb">set</span><span class="p">[</span><span class="n">Line</span><span class="p">]]:</span>
+    <span class="n">corners</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">tiles</span><span class="p">:</span>
+        <span class="c1"># noinspection PyUnresolvedReferences</span>
+        <span class="n">coverededges</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">coverededge</span><span class="p">()</span>
+        <span class="n">coveredcorners</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">coveredcorner</span><span class="p">(</span><span class="n">coverededges</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="s1">&#39;rect&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">]:</span>
+                <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]:</span>
+                <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;down&#39;</span><span class="p">]:</span>
+                <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]:</span>
+                <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coveredcorners</span><span class="p">[</span><span class="s1">&#39;upleft&#39;</span><span class="p">]:</span>
+                <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coveredcorners</span><span class="p">[</span><span class="s1">&#39;downleft&#39;</span><span class="p">]:</span>
+                <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coveredcorners</span><span class="p">[</span><span class="s1">&#39;downright&#39;</span><span class="p">]:</span>
+                <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coveredcorners</span><span class="p">[</span><span class="s1">&#39;upright&#39;</span><span class="p">]:</span>
+                <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">corners</span><span class="p">),</span> <span class="n">tiletoedges</span><span class="p">(</span><span class="n">tiles</span><span class="p">)]</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns the visible corners and edges of the tiles.</p>
+<h3 id="tiletocorners"><code>tiletocorners()</code><a class="headerlink" href="#tiletocorners" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.tiletocorners"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">tiletocorners</span><span class="p">(</span><span class="n">tiles</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Group</span> <span class="o">|</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Coord</span><span class="p">]:</span>
+    <span class="n">corners</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">tiles</span><span class="p">:</span>
+        <span class="n">coverededges</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">coverededge</span><span class="p">()</span>
+
+        <span class="c1"># the pixel diagonal to the corner so that the ray can go past</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]:</span>
+            <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;down&#39;</span><span class="p">]:</span>
+            <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;down&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]:</span>
+            <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">]:</span>
+            <span class="n">corners</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">corners</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns the visible corners of the tiles.
+Gets corners without getting edges first, meaning some corners will not be added.
+Not much reason to use this.</p>
+<h3 id="tiletoedges"><code>tiletoedges()</code><a class="headerlink" href="#tiletoedges" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.tiletoedges"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">tiletoedges</span><span class="p">(</span><span class="n">tiles</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Group</span> <span class="o">|</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Line</span><span class="p">]:</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">tiles</span><span class="p">:</span>
+        <span class="n">coverededges</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">coverededge</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">]:</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]:</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;down&#39;</span><span class="p">]:</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coverededges</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]:</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns the visible edges of the tiles.</p>
+<h2 id="calculation">Calculation<a class="headerlink" href="#calculation" title="Permanent link">#</a></h2>
+<h3 id="visiblecorners"><code>visiblecorners()</code><a class="headerlink" href="#visiblecorners" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.visiblecorners"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">visiblecorners</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Coord</span><span class="p">,</span> <span class="n">corners</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Coord</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Line</span><span class="p">],</span> <span class="n">tiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">direction</span><span class="p">:</span> <span class="n">Direction</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Coord</span><span class="p">]:</span>
+    <span class="n">visible</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">corner</span> <span class="ow">in</span> <span class="n">corners</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">checkvisible</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">corner</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">tiles</span><span class="o">=</span><span class="n">tiles</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">segmentintersect</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">corner</span><span class="p">),</span> <span class="n">edge</span><span class="p">):</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">visible</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">corner</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">visible</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns every corner in the given corners that is visible to the start coordinate in a 90 degree cone
+of the given direction.</p>
+<h3 id="rayvisiblecorners"><code>rayvisiblecorners()</code><a class="headerlink" href="#rayvisiblecorners" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.rayvisiblecorners"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">rayvisiblecorners</span><span class="p">(</span><span class="n">tiles</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="n">hostrect</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">Rect</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">Coord</span><span class="p">,</span> <span class="n">corners</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Coord</span><span class="p">],</span>
+                      <span class="n">edges</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Line</span><span class="p">],</span> <span class="n">direction</span><span class="p">:</span> <span class="n">Direction</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Coord</span><span class="p">]:</span>
+    <span class="n">corners</span> <span class="o">=</span> <span class="n">visiblecorners</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">corners</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">tiles</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">up</span><span class="p">:</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">topright</span><span class="p">)</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">topleft</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">left</span><span class="p">:</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">topleft</span><span class="p">)</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">down</span><span class="p">:</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">)</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">)</span>
+        <span class="n">corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hostrect</span><span class="o">.</span><span class="n">topright</span><span class="p">)</span>
+    <span class="n">held</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">validtiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">tiles</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">rect</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">hostrect</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">corner</span> <span class="ow">in</span> <span class="n">corners</span><span class="p">:</span>
+        <span class="n">vec</span> <span class="o">=</span> <span class="p">(</span><span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="n">corner</span><span class="p">)</span> <span class="o">-</span> <span class="n">pygame</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">Vector2</span><span class="p">(</span><span class="n">start</span><span class="p">))</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="n">vec</span><span class="o">.</span><span class="n">scale_to_length</span><span class="p">(</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">floatpos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">corner</span><span class="p">)</span>
+        <span class="n">tempsprite</span> <span class="o">=</span> <span class="n">Demo</span><span class="p">(</span><span class="n">pygame</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">Rect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">tempsprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">floatpos</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">collision</span> <span class="o">:=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">tempsprite</span><span class="p">,</span> <span class="n">validtiles</span><span class="p">))</span> <span class="ow">and</span> \
+                <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">width</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">height</span><span class="p">:</span>
+            <span class="n">floatpos</span> <span class="o">+=</span> <span class="n">vec</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tempsprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">centerx</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tempsprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">centerx</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tempsprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">centery</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tempsprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">centery</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">corner</span> <span class="o">==</span> <span class="p">(</span><span class="mi">32</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">32</span> <span class="o">*</span> <span class="mi">30</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">collision</span><span class="p">,</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">32</span><span class="p">,</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="mi">32</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">)</span>
+
+        <span class="c1"># noinspection PyShadowingNames</span>
+        <span class="k">def</span> <span class="nf">collidecheck</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">collision</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">collision</span><span class="p">:</span>
+                    <span class="n">point</span> <span class="o">=</span> <span class="n">segmentintersect</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">),</span> <span class="p">(</span><span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">,</span>
+                                                                 <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">point</span>
+                <span class="k">elif</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">collision</span><span class="p">:</span>
+                    <span class="n">point</span> <span class="o">=</span> <span class="n">segmentintersect</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">),</span> <span class="p">(</span><span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">,</span>
+                                                                 <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">point</span>
+                <span class="k">elif</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">width</span><span class="p">:</span>
+                    <span class="n">floatpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">width</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">collision</span><span class="p">:</span>
+                    <span class="n">point</span> <span class="o">=</span> <span class="n">segmentintersect</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">),</span> <span class="p">(</span><span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomleft</span><span class="p">,</span>
+                                                                 <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottomright</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">point</span>
+                <span class="k">elif</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">collision</span><span class="p">:</span>
+                    <span class="n">point</span> <span class="o">=</span> <span class="n">segmentintersect</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">),</span> <span class="p">(</span><span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topright</span><span class="p">,</span>
+                                                                 <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">topleft</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">point</span>
+                <span class="k">elif</span> <span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">height</span><span class="p">:</span>
+                    <span class="n">floatpos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">height</span>
+            <span class="k">if</span> <span class="n">corner</span> <span class="o">==</span> <span class="p">(</span><span class="mi">32</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">32</span> <span class="o">*</span> <span class="mi">30</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">floatpos</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">floatpos</span>
+
+        <span class="n">held</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">collidecheck</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">floatpos</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">collision</span><span class="p">)))</span>
+    <span class="c1"># print(corners)</span>
+    <span class="k">return</span> <span class="n">corners</span> <span class="o">+</span> <span class="n">held</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns every corner in the given corners that is visible to the start coordinate in the given direction, 
+alongside coordinates of where light rays hit.
+Upgrade of :ref:`shadowcasting:visiblecorners()``` that additionally uses rays to find every point necessary.</p>
+<h3 id="visibleedges"><code>visibleedges()</code><a class="headerlink" href="#visibleedges" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="assets.data.shadowcasting.visibleedges"></a>
+  <div class="doc doc-contents first">
+
+          <details class="quote">
+            <summary> <code>assets/data/shadowcasting.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">visibleedges</span><span class="p">(</span><span class="n">viscorners</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Coord</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Line</span><span class="p">]:</span>
+    <span class="n">visible</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">viscorners</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">viscorners</span><span class="p">)):</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">viscorners</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">viscorners</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">size</span> <span class="o">+</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">size</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">visible</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">visible</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Returns a list of all tile edges that are visible to the source.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../modding/" class="btn btn-neutral float-left" title="modding"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../modding/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

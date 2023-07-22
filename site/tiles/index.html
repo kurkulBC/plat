@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>tiles - Plat Docs</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "tiles";
+        var mkdocs_page_input_path = "tiles.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Plat Docs
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">tiles</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#background-tiles">Background Tiles</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#space">Space</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#lava">Lava</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#circuit">Circuit</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#generic-tiles">Generic Tiles</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#block">Block</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#spawn">Spawn</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#escape">Escape</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#elevator">Elevator</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hotrock">Hotrock</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sticky-elevator">Sticky Elevator</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#diamond">Diamond</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#glass">Glass</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#magma">Magma</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mechanical-tiles">Mechanical Tiles</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#switch">Switch</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#door">Door</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#turret">Turret</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#light">Light</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#piston">Piston</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#piston-rod">Piston Rod</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#dropper">Dropper</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#conveyor">Conveyor</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#conductor">Conductor</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#grappler">Grappler</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hook">Hook</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#sensor-tiles">Sensor Tiles</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#sensor">Sensor</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#transformer">Transformer</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#broadcaster">Broadcaster</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#picker">Picker</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tripwire">Tripwire</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#projectiles">Projectiles</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#bullet">Bullet</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#lighting">Lighting</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#droplet">Droplet</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hook-trail">Hook Trail</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../mechanics/">mechanics</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../modding/">modding</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../shadowcasting/">shadowcasting</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Plat Docs</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a> &raquo;</li>
+      <li>tiles</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tiles">Tiles<a class="headerlink" href="#tiles" title="Permanent link">#</a></h1>
+<h2 id="background-tiles">Background Tiles<a class="headerlink" href="#background-tiles" title="Permanent link">#</a></h2>
+<h3 id="space">Space<a class="headerlink" href="#space" title="Permanent link">#</a></h3>
+<p><img src="../img/space.png" width="100"/></p>
+<p>Empty space that can be passed through.</p>
+<h3 id="lava">Lava<a class="headerlink" href="#lava" title="Permanent link">#</a></h3>
+<p><img src="../img/lava.png" width="100"/></p>
+<p>Kills the player on contact.</p>
+<h3 id="circuit">Circuit<a class="headerlink" href="#circuit" title="Permanent link">#</a></h3>
+<p><img src="../img/circuit.png" width="100"/></p>
+<p>The only tile <a href="#elevator">elevators</a> can move on.</p>
+<h2 id="generic-tiles">Generic Tiles<a class="headerlink" href="#generic-tiles" title="Permanent link">#</a></h2>
+<h3 id="block">Block<a class="headerlink" href="#block" title="Permanent link">#</a></h3>
+<p><img src="../img/block.png" width="100"/></p>
+<p>Just a regular block that can be walked on and pushed. Nothing too
+special.</p>
+<h3 id="spawn">Spawn<a class="headerlink" href="#spawn" title="Permanent link">#</a></h3>
+<p><img src="../img/spawn.png" width="100"/></p>
+<p>Where the player starts. There can only be one.</p>
+<h3 id="escape">Escape<a class="headerlink" href="#escape" title="Permanent link">#</a></h3>
+<p><img src="../img/escape.png" width="100"/></p>
+<p>Where the player ends.</p>
+<h3 id="elevator">Elevator<a class="headerlink" href="#elevator" title="Permanent link">#</a></h3>
+<p><img src="../img/elevator.png" width="100"/></p>
+<p>Moves along <a href="#circuit">circuits</a>, Stops when powered.</p>
+<h3 id="hotrock">Hotrock<a class="headerlink" href="#hotrock" title="Permanent link">#</a></h3>
+<p><img src="../img/hotrock.png" width="100"/></p>
+<p>Direct source of power.</p>
+<h3 id="sticky-elevator">Sticky Elevator<a class="headerlink" href="#sticky-elevator" title="Permanent link">#</a></h3>
+<p><img src="../img/stickyelevator.png" width="100"/></p>
+<p>Modification of the <a href="#elevator">elevator</a> that sticks onto and drags tiles
+it touches.</p>
+<h3 id="diamond">Diamond<a class="headerlink" href="#diamond" title="Permanent link">#</a></h3>
+<p><img src="../img/stealth/diamond.png" width="100"/></p>
+<p>Type of <a href="#escape">escape</a>. When collected, the spawn of the level becomes an
+escape.</p>
+<h3 id="glass">Glass<a class="headerlink" href="#glass" title="Permanent link">#</a></h3>
+<p><img src="../img/stealth/glass.png" width="100"/></p>
+<p>Type of <a href="#block">block</a>. Transparent.</p>
+<h3 id="magma">Magma<a class="headerlink" href="#magma" title="Permanent link">#</a></h3>
+<p><img src="../img/lava.png" width="100"/></p>
+<p>Type of <a href="#lava">lava</a>. Spreads over time.</p>
+<h2 id="mechanical-tiles">Mechanical Tiles<a class="headerlink" href="#mechanical-tiles" title="Permanent link">#</a></h2>
+<h3 id="switch">Switch<a class="headerlink" href="#switch" title="Permanent link">#</a></h3>
+<p><img src="../img/switch.png" width="100"/>
+<img src="../img/switch2.png" width="100"/></p>
+<p>Sends out a signal of its assigned ID when pressed by the player
+or a falling tile.</p>
+<h3 id="door">Door<a class="headerlink" href="#door" title="Permanent link">#</a></h3>
+<p><img src="../img/door.png" width="100"/></p>
+<p>Toggles every time it receives a signal. While active, blocks off
+all motion and power for tiles it covers.</p>
+<h3 id="turret">Turret<a class="headerlink" href="#turret" title="Permanent link">#</a></h3>
+<p><img src="../img/turret.png" width="100"/></p>
+<p>When powered on any side, fires <a href="#bullet">bullets</a> out of the opposite side
+at an assigned frequency.</p>
+<h3 id="light">Light<a class="headerlink" href="#light" title="Permanent link">#</a></h3>
+<p><img src="../img/stealth/light.png" width="100"/></p>
+<p>When powered on any side, shines <a href="#lighting">lighting</a> out of the opposite side.</p>
+<h3 id="piston">Piston<a class="headerlink" href="#piston" title="Permanent link">#</a></h3>
+<p><img src="../img/piston.png" width="100"/></p>
+<p>When powered, pushes out its <a href="#piston-rod">piston rod</a> and whatever is in front of it.</p>
+<h3 id="piston-rod">Piston Rod<a class="headerlink" href="#piston-rod" title="Permanent link">#</a></h3>
+<p><img src="../img/pistonrod.png" width="100"/></p>
+<p>When powered, leaves its <a href="#piston">piston</a> and pushes whatever is in front of it.</p>
+<h3 id="dropper">Dropper<a class="headerlink" href="#dropper" title="Permanent link">#</a></h3>
+<p><img src="../img/dropper.png" width="100"/></p>
+<p>When powered or signalled, releases a single <a href="#droplet">droplet</a>. Can only have one
+active droplet.</p>
+<h3 id="conveyor">Conveyor<a class="headerlink" href="#conveyor" title="Permanent link">#</a></h3>
+<p><img src="../img/conveyor.png" width="100"/></p>
+<p>When powered, pushes all low-weight tiles on it in an assigned direction.</p>
+<h3 id="conductor">Conductor<a class="headerlink" href="#conductor" title="Permanent link">#</a></h3>
+<p><img src="../img/conductor.png" width="100"/>
+<img src="../img/conductor2.png" width="100"/></p>
+<p>Emits power when powered externally, otherwise inert</p>
+<h3 id="grappler">Grappler<a class="headerlink" href="#grappler" title="Permanent link">#</a></h3>
+<p><img src="../img/grappler.png" width="100"/></p>
+<p>When powered, fires out its <a href="#hook">hook</a> and pulls itself to whatever it hits,
+emitting power along the way</p>
+<h3 id="hook">Hook<a class="headerlink" href="#hook" title="Permanent link">#</a></h3>
+<p><img src="../img/hook.png" width="100"/></p>
+<p>Fired by <a href="#grappler">grapplers</a> and leaves behind a <a href="#hook-trail">trail</a>.</p>
+<h2 id="sensor-tiles">Sensor Tiles<a class="headerlink" href="#sensor-tiles" title="Permanent link">#</a></h2>
+<h3 id="sensor">Sensor<a class="headerlink" href="#sensor" title="Permanent link">#</a></h3>
+<p>Base class of all sensors.</p>
+<h3 id="transformer">Transformer<a class="headerlink" href="#transformer" title="Permanent link">#</a></h3>
+<p><img src="../img/transformer.png" width="100"/></p>
+<p>Converts signals into power; when signalled, it switches between being a power
+source and a regular tile.</p>
+<h3 id="broadcaster">Broadcaster<a class="headerlink" href="#broadcaster" title="Permanent link">#</a></h3>
+<p><img src="../img/broadcaster.png" width="100"/></p>
+<p>Converts power into signals; When it gets or loses power, it sends out a signal.</p>
+<h3 id="picker">Picker<a class="headerlink" href="#picker" title="Permanent link">#</a></h3>
+<p><img src="../img/picker.png" width="100"/></p>
+<p>Converts droplets into signals; it consumes touching droplets and sends out a
+signal whenever it does.</p>
+<h3 id="tripwire">Tripwire<a class="headerlink" href="#tripwire" title="Permanent link">#</a></h3>
+<p><img src="../img/tripwire.png" width="100"/>
+<img src="../img/tripwire2.png" width="100"/></p>
+<p>Converts motion into signals; whenever the player runs through it, it send out
+a signal.</p>
+<h2 id="projectiles">Projectiles<a class="headerlink" href="#projectiles" title="Permanent link">#</a></h2>
+<h3 id="bullet">Bullet<a class="headerlink" href="#bullet" title="Permanent link">#</a></h3>
+<p><img src="../img/bullet.png" width="100"/></p>
+<p>Fired from <a href="#turret">turrets</a>. Kills the player on hit and dies on collision with a
+solid tile.</p>
+<h3 id="lighting">Lighting<a class="headerlink" href="#lighting" title="Permanent link">#</a></h3>
+<p>Casts light. Summoned from <a href="#light">lights</a>.</p>
+<h3 id="droplet">Droplet<a class="headerlink" href="#droplet" title="Permanent link">#</a></h3>
+<p><img src="../img/droplet.png" width="100"/></p>
+<p>Small falling tile produced by a <a href="#dropper">dropper</a>. Consumed by <a href="#picker">pickers</a>.</p>
+<h3 id="hook-trail">Hook Trail<a class="headerlink" href="#hook-trail" title="Permanent link">#</a></h3>
+<p><img src="../img/hooktrail.png" width="100"/></p>
+<p>Left behind by <a href="#hook">hooks</a>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../mechanics/" class="btn btn-neutral float-right" title="mechanics">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../mechanics/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
