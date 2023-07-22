@@ -655,8 +655,8 @@ def animate():
                 animations['animsound'].play()
                 animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch4.ogg")
             if animations['animtime'] == 360:
-                vortextiles.update("assets/img/escape.png")
-                vortextiles.update("assets/img/spawn.png", 1)
+                vortextiles.update("assets/imgx/escape.png")
+                vortextiles.update("assets/imgx/spawn.png", 1)
                 shake(10, 5, 5, 0, 0)
                 shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
                 animations['animsound'].play()
@@ -1062,7 +1062,7 @@ class Guard(pygame.sprite.Sprite):
         'alert': pygame.image.load("assets/img/stealth/exclamationmark.png"),
     }
 
-    def __init__(self, x, y, target: pygame.sprite.Sprite = None, image="assets/img/stealth/guard.png",
+    def __init__(self, x, y, target: pygame.sprite.Sprite = None, image="assets/imgx/stealth/guard.png",
                  facing=Direction.left, speed: list = None, path: list[shca.Coord] = None):
         super().__init__()
         self.x = x
@@ -2564,22 +2564,22 @@ while run:
                         else:
                             turrettiles.add(Turret(levelx, levely))
                     elif tile[0] == 12:
-                        vortextiles.add(Vortex(levelx, levely, tile[1], "assets/img/anims/greenglitch.png",
+                        vortextiles.add(Vortex(levelx, levely, tile[1], "assets/imgx/anims/greenglitch.png",
                                                "escape"))
                         # if tile[1] == 0:
-                        #     prevortextiles.append([levelx, levely, "assets/img/space.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/space.png"])
                         # if tile[1] == 1:
-                        #     prevortextiles.append([levelx, levely, "assets/img/block.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/block.png"])
                         # if tile[1] == 2:
-                        #     prevortextiles.append([levelx, levely, "assets/img/spawn.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/spawn.png"])
                         # if tile[1] == 3:
-                        #     prevortextiles.append([levelx, levely, "assets/img/lava.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/lava.png"])
                         # if tile[1] == 4:
-                        #     prevortextiles.append([levelx, levely, "assets/img/escape.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/escape.png"])
                         # if tile[1] == 5:
-                        #     prevortextiles.append([levelx, levely, "assets/img/circuit.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/circuit.png"])
                         # if tile[1] == 6:
-                        #     prevortextiles.append([levelx, levely, "assets/img/elevator.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/elevator.png"])
                     elif tile[0] == 13:
                         if len(tile) == 3:
                             pistontiles.add(Piston(levelx, levely, tile[1], tile[2]))
