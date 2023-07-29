@@ -2427,13 +2427,6 @@ def redrawgamewindow():
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     if stealth:
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
-        for sprite in lightingtiles:
-            for coord in sprite.visiblepolycache[0]:
-                pygame.draw.circle(win, colors.RED, coord, 2)
-        #     for coord in Light.polycache[0]:
-        #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
-        # for coord in Light.polycache[0]:
-        #     pygame.draw.circle(win, colors.RED, coord, 2)
 
     # ~1ms
     pygame.display.flip()
