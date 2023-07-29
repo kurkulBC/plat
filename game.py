@@ -1645,7 +1645,6 @@ class Bullet(TempObj):
 
 
 class Light(Tile):
-    polycache: list[list[shca.Coord], list[shca.Line]]
 
     def __init__(self, x, y):
         super().__init__("stealth/light", x, y)
@@ -1660,7 +1659,6 @@ class Light(Tile):
         if not super().update():
             return
 
-        Light.polycache = shca.tiletopoly(solidtiles)
         powered = power(self)
 
         if powered[Direction.up]:
@@ -1702,36 +1700,40 @@ class Lighting(TempObj):
         self.polycache = list[list[shca.Coord], list[shca.Line]]
         self.visiblepolycache: list[list[shca.Coord], list[shca.Line]] = []
 
-    def fillpolycaches(self):
-        self.polycache = [[s for s in Light.polycache[0] if not (
-                self.hostrect.left - 1 <= s[0] <= self.hostrect.right + 1 and
-                self.hostrect.top - 1 <= s[1] <= self.hostrect.bottom + 1)],
-
-                          [s for s in Light.polycache[1] if not (
-                                  self.hostrect.left <= s[0][0] <= self.hostrect.right and
-                                  self.hostrect.top <= s[0][1] <= self.hostrect.bottom and
-                                  self.hostrect.left <= s[1][0] <= self.hostrect.right and
-                                  self.hostrect.top <= s[1][1] <= self.hostrect.bottom)]]
-        self.visiblepolycache = [
-            shca.rayvisiblecorners(solidtiles, self.hostrect, self.hostrect.center,
-                                   self.polycache[0], self.polycache[1], self.direction),
-        ]
-        self.visiblepolycache.append(shca.visibleedges(self.visiblepolycache[0]))
-
     def update(self):
         if not plat.alive:
-            pass
+            return
 
-        self.fillpolycaches()
+        # light sources on lvl5:
+        # (272, 48)
+        # (720, 48)
+        # (144, 336)
+        # (784, 528)
+        # (464, 560)
+        # (208, 816)
+        # (592, 816)
+        # (656, 816)
+        #if self.rect.center != (208, 816):
+            #return
+        #    pass
 
-        for corner in self.visiblepolycache[0]:
-            pygame.draw.line(shadowsurf, colors.BLACK, self.hostrect.center, corner)
+        #print(pygame.time.get_ticks())
 
-        for line in self.visiblepolycache[1]:
-            # pygame.draw.line(shadowsurf, colors.LGRAY, *line, 2)
-            pygame.draw.polygon(shadowsurf, colors.BLACK, (*line, self.hostrect.center))
+        #shca.LightingSystem.level_data = currentlvl
+        #corners = shca.LightingSystem.get_unique_corners(solidtiles, shca.LightingSystem.static_tiles_mask)
+        #vcorners = shca.LightingSystem.get_visible_corners((self.hostrect.center, self.direction), corners, shca.LightingSystem.static_tiles_mask)
+        #poly = shca.LightingSystem.corners_to_poly(vcorners, self.rect.center)
+        #pygame.draw.polygon(shadowsurf, colors.BLACK, poly)
+        #print(vcorners)
+        #print(poly)
+        #pygame.draw.rect(shadowsurf, colors.DGRAY, self.hostrect)
 
-        pygame.draw.rect(shadowsurf, colors.DGRAY, self.hostrect)
+        #for corner in corners:
+            #pygame.draw.circle(shadowsurf, colors.GREEN, (corner[0], corner[1]), 10)
+        #    pass
+        #for corner in vcorners:
+            #pygame.draw.circle(shadowsurf, colors.GREEN, (corner[0][0], corner[0][1]), 10)
+        #    pass
 
 
 class Vortex(Tile):
@@ -2321,7 +2323,7 @@ while run:
 
     if plat.escaped is True:
         plat.escaped = False
-        levelcount += 1
+        levelcount = 4
         if not animations['cutscene']:
             currentlvl = levels[levelcount]
             leveltext = font1.render(f"Level {levelcount + 1} : {leveldescs[levelcount]}", False, colors.WHITE)
@@ -2520,6 +2522,14 @@ while run:
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
             lighttiles.update()
             lightingtiles.update()
+
+            shca.LightingManager.light_sources = map(lambda tile: (tile.rect.center, tile.direction), lightingtiles)
+            shca.LightingManager.static_tiles = solidtiles
+            shca.LightingManager.level_data = currentlvl
+            shca.LightingManager.update_static_tiles()
+
+            for poly in shca.LightingManager.static_polygons:
+                pygame.draw.polygon(shadowsurf, colors.BLACK, poly)
 
         plat.die("respawn", "game")
 

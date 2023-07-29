@@ -70,7 +70,7 @@ class DirectionTools(object):
 
 # dummy class
 class Demo(pygame.sprite.Sprite):
-    def __init__(self, rect: pygame.rect.Rect | pygame.rect.FRect):
+    def __init__(self, rect: pygame.rect.Rect | pygame.rect.Rect):
         super().__init__()
         self.rect = rect
 
