@@ -17,7 +17,7 @@ color codes:
     piston - 100, 100, 100 [(0-0-3)rotation]
     guard - 32, 32, 32
     dropper - 196, 128, 0 [id, (0-0-3)rotation]
-    conveyor - 128, 128, 0 [(0-0-3)rotation]
+    conveyor - 128, 128, 0 [('l'-'l'-'r')rotation]
     conductor - 128, 128, 128
     grappler - 64, 128, 196 [id, (0-0-3)rotation]
     stickyelev - 200, 196, 0

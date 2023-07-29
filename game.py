@@ -13,9 +13,8 @@ from assets.data import shadowcasting as shca
 from assets.data import tilegroups
 from math import dist, copysign
 
-# init ~1.7s
-# pygame.init()
-# init ~0.1 :)
+# pygame.init() - init ~1.7s
+# this - init ~0.1s :)
 try:
     pygame.mixer.init()
 except pygame.error:
@@ -71,6 +70,7 @@ grapplertiles = pygame.sprite.Group()
 hooktiles = pygame.sprite.Group()
 hooktrails = pygame.sprite.Group()
 sensortiles = pygame.sprite.Group()
+shiftertiles = pygame.sprite.Group()
 
 # create special groups
 projectiles = pygame.sprite.Group()
@@ -97,6 +97,7 @@ sfx = {
         'press',
         'break',
         'drop',
+
         'hook',
         'reel',
         'pick',
@@ -982,12 +983,16 @@ class Tile(pygame.sprite.Sprite):
             self.vertforce = 0
 
         self.transportmomentum = [0, 0]
-        collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+        collidedtiles = pygame.sprite.spritecollide(self, [s for s in collidetiles if s != self], False)
         if collidedtiles:
             if not hax.active or not hax.noclip:
                 if not mute:
                     sfx['crush'].play()
-                    self.rect.x, self.rect.y = -32, -32
+                self.rect.x, self.rect.y = -32, -32
+        if pygame.sprite.spritecollideany(self, lavatiles):
+            if not mute:
+                sfx['melt'].play()
+            self.rect.x, self.rect.y = -32, -32
 
 
 class TempObj(pygame.sprite.Sprite):
@@ -1062,7 +1067,7 @@ class Guard(pygame.sprite.Sprite):
         'alert': pygame.image.load("assets/img/stealth/exclamationmark.png"),
     }
 
-    def __init__(self, x, y, target: pygame.sprite.Sprite = None, image="assets/imgx/stealth/guard.png",
+    def __init__(self, x, y, target: pygame.sprite.Sprite = None, image="assets/img/stealth/guard.png",
                  facing=Direction.left, speed: list = None, path: list[shca.Coord] = None):
         super().__init__()
         self.x = x
@@ -1693,7 +1698,6 @@ class Light(Tile):
         if not super().update():
             return
 
-        Light.polycache = shca.tiletopoly(solidtiles)
         powered = power(self)
 
         if powered[Direction.up]:
@@ -1854,7 +1858,7 @@ class PistonRod(Tile):
 
 class Diamond(Tile):
     def __init__(self, x, y):
-        super().__init__("stealth/diamond", x, y, True)
+        super().__init__("stealth/diamond", x, y, True, layer=1)
 
 
 class Glass(Tile):
@@ -2337,7 +2341,18 @@ class Magma(Lava):
         otherlava = [s for s in lavatiles if s != self]
 
         self.rect.y += size
-        self.tryspawn()
+        if not self.tryspawn():
+            self.rect.y -= size
+
+            self.rect.x -= size
+            self.tryspawn()
+            self.rect.x += size
+
+            self.rect.x += size
+            self.tryspawn()
+            self.rect.x -= size
+
+            self.rect.y += size
         self.rect.y -= size
 
         for i in range(self.spreadspace):
@@ -2381,6 +2396,14 @@ class Magma(Lava):
         if [s for s in pygame.sprite.spritecollide(self, bgtiles, False)] and \
                 not pygame.sprite.spritecollideany(self, solidtiles) and boundscheck(self.rect):
             Magma(self.rect.x, self.rect.y, self.spreadspace, self.spreaddelay, True).populategroups()
+            return True
+        return False
+
+
+class Shifter(Tile):
+    def __init__(self, x, y, ident=-1):
+        super().__init__("shifter", x, y)
+        self.ident = ident
 
 
 # refresh every frame
@@ -2408,9 +2431,6 @@ def redrawgamewindow():
         #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
         # for coord in Light.polycache[0]:
         #     pygame.draw.circle(win, colors.RED, coord, 2)
-        vec = (pygame.math.Vector2(32 * 8 - 1, 32 * 30 + 1) - pygame.math.Vector2(6 * 32 + 16, 26 * 32 - 16))
-        vec.scale_to_length(size - 1)
-        pygame.draw.line(win, colors.RED, [32 * 8 - 1, 32 * 30 + 1] + vec, (6 * 32 + 16, 26 * 32 - 16))
 
     # ~1ms
     pygame.display.flip()
@@ -2662,6 +2682,8 @@ while run:
             Esc(-32, -32).populategroups()
             shadowsurf.fill(colors.DGRAY)
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
+            Light.polycache[0].update([(x * 32, y * 32) for x in range(33) for y in range(33)
+                                       if x in (0, 32) or y in (0, 32)])
             lighttiles.update()
             lightingtiles.update()
 
@@ -2669,6 +2691,8 @@ while run:
 
     # if stealth:
     #     Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
+    #     Light.polycache[0].update([(x * 32, y * 32) for x in range(33) for y in range(33)
+    #                                if x in (0, 32) or y in (0, 32)])
     if lavadeath := pygame.sprite.spritecollide(plat, lavatiles, False):
         plat.die("lava", lavadeath)
     if escapes := pygame.sprite.spritecollide(plat, esctiles, False):
