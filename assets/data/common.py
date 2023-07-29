@@ -101,3 +101,9 @@ class ShakeLayered(pygame.sprite.LayeredUpdates):
                     dirty_append(rec)
             spritedict[spr] = newrect
         return dirty
+
+
+def boundscheck(rect: pygame.rect.Rect) -> bool:
+    if rect.left < 0 or rect.right > width or rect.top < 0 or rect.bottom > height:
+        return False
+    return True

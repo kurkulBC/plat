@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>mechanics - Plat Docs</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "mechanics";
+        var mkdocs_page_input_path = "mechanics.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Plat Docs
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../tiles/">tiles</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">mechanics</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#lighting">Lighting</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#misc">Misc</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#power">power()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#game.power">game.power</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#glitch">glitch()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#game.glitch">game.glitch</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#animate">animate()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#game.animate">game.animate</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#shake">shake()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#game.shake">game.shake</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#push">push()</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#game.push">game.push</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../modding/">modding</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../shadowcasting/">shadowcasting</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Plat Docs</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a> &raquo;</li>
+      <li>mechanics</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="mechanics">Mechanics<a class="headerlink" href="#mechanics" title="Permanent link">#</a></h1>
+<h2 id="lighting">Lighting<a class="headerlink" href="#lighting" title="Permanent link">#</a></h2>
+<p><a href="../tiles/#light">Light</a> spawns <a href="../tiles/#lighting">Lighting</a> that runs relevant algorithms to cast
+pixel-perfect shadows on nearby blocks. Information on lighting code is in <a href="../shadowcasting/">shadowcasting</a>.</p>
+<p>Lighting code only affects a single object: <code>shadowsurf</code>. This is a <code>Surface</code> the same size
+as the screen where every pixel is either set to gray or black, then is subtracted from the screen
+to create light.</p>
+<p>The light tile is simple enough: it checks for power and spawns light on the relevant sides, much like
+turrets. Lighting tiles are the ones that do most of the heavy lifting. <code>Light.polycache</code> is a variable
+containing the results of <a href="../shadowcasting/#tiletopoly">shadowcasting.tiletopoly()</a>, which is then copied
+to each lighting tile's <code>polycache</code> besides the corners contained inside the host light tile, which in turn
+has its results filtered through <a href="../shadowcasting/#rayvisiblecorners">shadowcasting.rayvisiblecorners()</a>. 
+This is now added to the lighting tile's <code>visiblepolycache</code>, which is appended by a 
+<a href="../shadowcasting/#visibleedges">shadowcasting.visibleedges()</a> call on itself. Afterwards, the corners and lines 
+are drawn and filled in on <code>shadowsurf</code>.</p>
+<h2 id="misc">Misc<a class="headerlink" href="#misc" title="Permanent link">#</a></h2>
+<h3 id="power">power()<a class="headerlink" href="#power" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="game.power"></a>
+  <div class="doc doc-contents first">
+  
+      <p>:param sprite: the sprite to power
+:param aslist: returns power as a dict if turned on, else bool
+:param exact: only counts being powered from a direction if the
+power source is exactly aligned
+:return: dict of (direction -&gt; sprite powered from direction?),
+or, if aslist is False, bool of if the sprite has any power</p>
+
+          <details class="quote">
+            <summary> <code>game.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">power</span><span class="p">(</span><span class="n">sprite</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">,</span> <span class="n">aslist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exact</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Direction</span><span class="p">,</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param sprite: the sprite to power</span>
+<span class="sd">    :param aslist: returns power as a dict if turned on, else bool</span>
+<span class="sd">    :param exact: only counts being powered from a direction if the</span>
+<span class="sd">    power source is exactly aligned</span>
+<span class="sd">    :return: dict of (direction -&gt; sprite powered from direction?),</span>
+<span class="sd">    or, if aslist is False, bool of if the sprite has any power</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">powered</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">Direction</span><span class="o">.</span><span class="n">up</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">Direction</span><span class="o">.</span><span class="n">left</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">Direction</span><span class="o">.</span><span class="n">down</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">Direction</span><span class="o">.</span><span class="n">right</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">doors</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">doortiles</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">on</span><span class="p">]</span>
+
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="n">uppower</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="p">[</span><span class="o">*</span><span class="n">rocktiles</span><span class="p">,</span> <span class="o">*</span><span class="n">power</span><span class="o">.</span><span class="n">conductorcache</span><span class="p">])</span>
+    <span class="n">upblock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="n">doors</span><span class="p">)</span>
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">uppower</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">upblock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exact</span> <span class="ow">and</span> <span class="n">uppower</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">!=</span> <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">aslist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">uppower</span>
+        <span class="n">powered</span><span class="p">[</span><span class="n">Direction</span><span class="o">.</span><span class="n">up</span><span class="p">]</span> <span class="o">=</span> <span class="n">uppower</span>
+        <span class="k">break</span>
+
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="n">leftpower</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="p">[</span><span class="o">*</span><span class="n">rocktiles</span><span class="p">,</span> <span class="o">*</span><span class="n">power</span><span class="o">.</span><span class="n">conductorcache</span><span class="p">])</span>
+    <span class="n">leftblock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="n">doors</span><span class="p">)</span>
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">leftpower</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">leftblock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exact</span> <span class="ow">and</span> <span class="n">leftpower</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">!=</span> <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">aslist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">leftpower</span>
+        <span class="n">powered</span><span class="p">[</span><span class="n">Direction</span><span class="o">.</span><span class="n">left</span><span class="p">]</span> <span class="o">=</span> <span class="n">leftpower</span>
+        <span class="k">break</span>
+
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">downpower</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="p">[</span><span class="o">*</span><span class="n">rocktiles</span><span class="p">,</span> <span class="o">*</span><span class="n">power</span><span class="o">.</span><span class="n">conductorcache</span><span class="p">])</span>
+    <span class="n">downblock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="n">doors</span><span class="p">)</span>
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">downpower</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">downblock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exact</span> <span class="ow">and</span> <span class="n">downpower</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">!=</span> <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">aslist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">downpower</span>
+        <span class="n">powered</span><span class="p">[</span><span class="n">Direction</span><span class="o">.</span><span class="n">down</span><span class="p">]</span> <span class="o">=</span> <span class="n">downpower</span>
+        <span class="k">break</span>
+
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">rightpower</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="p">[</span><span class="o">*</span><span class="n">rocktiles</span><span class="p">,</span> <span class="o">*</span><span class="n">power</span><span class="o">.</span><span class="n">conductorcache</span><span class="p">])</span>
+    <span class="n">rightblock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollideany</span><span class="p">(</span><span class="n">sprite</span><span class="p">,</span> <span class="n">doors</span><span class="p">)</span>
+    <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">rightpower</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rightblock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exact</span> <span class="ow">and</span> <span class="n">rightpower</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">!=</span> <span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">aslist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rightpower</span>
+        <span class="n">powered</span><span class="p">[</span><span class="n">Direction</span><span class="o">.</span><span class="n">right</span><span class="p">]</span> <span class="o">=</span> <span class="n">rightpower</span>
+        <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">powered</span> <span class="k">if</span> <span class="n">aslist</span> <span class="k">else</span> <span class="kc">False</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Checks for if a tile has power that frame.</p>
+<h3 id="glitch">glitch()<a class="headerlink" href="#glitch" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="game.glitch"></a>
+  <div class="doc doc-contents first">
+  
+      <p>:param image: image to apply a glitch effect to
+:return: the image after the glitch effect is applied</p>
+
+          <details class="quote">
+            <summary> <code>game.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">glitch</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param image: image to apply a glitch effect to</span>
+<span class="sd">    :return: the image after the glitch effect is applied</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">glitchimg</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20000000</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+    <span class="n">glitchimg</span> <span class="o">=</span> <span class="n">glitcher</span><span class="o">.</span><span class="n">glitch_image</span><span class="p">(</span><span class="n">src_img</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">glitch_amount</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">color_offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">glitchimg</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;assets\img\anims\glitchimg.png&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;PNG&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">glitchimg</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><h3 id="animate">animate()<a class="headerlink" href="#animate" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="game.animate"></a>
+  <div class="doc doc-contents first">
+  
+      <p>:return: nothing</p>
+
+          <details class="quote">
+            <summary> <code>game.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span>
+<span class="normal">616</span>
+<span class="normal">617</span>
+<span class="normal">618</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span>
+<span class="normal">623</span>
+<span class="normal">624</span>
+<span class="normal">625</span>
+<span class="normal">626</span>
+<span class="normal">627</span>
+<span class="normal">628</span>
+<span class="normal">629</span>
+<span class="normal">630</span>
+<span class="normal">631</span>
+<span class="normal">632</span>
+<span class="normal">633</span>
+<span class="normal">634</span>
+<span class="normal">635</span>
+<span class="normal">636</span>
+<span class="normal">637</span>
+<span class="normal">638</span>
+<span class="normal">639</span>
+<span class="normal">640</span>
+<span class="normal">641</span>
+<span class="normal">642</span>
+<span class="normal">643</span>
+<span class="normal">644</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span>
+<span class="normal">655</span>
+<span class="normal">656</span>
+<span class="normal">657</span>
+<span class="normal">658</span>
+<span class="normal">659</span>
+<span class="normal">660</span>
+<span class="normal">661</span>
+<span class="normal">662</span>
+<span class="normal">663</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span>
+<span class="normal">670</span>
+<span class="normal">671</span>
+<span class="normal">672</span>
+<span class="normal">673</span>
+<span class="normal">674</span>
+<span class="normal">675</span>
+<span class="normal">676</span>
+<span class="normal">677</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span>
+<span class="normal">682</span>
+<span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span>
+<span class="normal">694</span>
+<span class="normal">695</span>
+<span class="normal">696</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">animate</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :return: nothing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">animations</span>
+    <span class="k">global</span> <span class="n">shadowsurf</span>
+    <span class="k">global</span> <span class="n">zoom</span>
+    <span class="k">global</span> <span class="n">screenrotation</span>
+    <span class="k">global</span> <span class="n">mute</span>
+
+    <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animlive&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;cutscenecount&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">jumpheight</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">gravity</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">mute</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">Sound</span><span class="p">(</span><span class="s2">&quot;assets/sfx/anims/anim1glitch.ogg&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">20</span> <span class="o">&lt;</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">50</span><span class="p">:</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">moveleft</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">55</span><span class="p">:</span>
+                <span class="n">vortextiles</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">shake</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">Sound</span><span class="p">(</span><span class="s2">&quot;assets/sfx/anims/anim1glitch2.ogg&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">55</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">:</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="mi">4</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">moveup</span><span class="p">()</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">moveright</span><span class="p">()</span>
+            <span class="k">if</span> <span class="mi">60</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">90</span><span class="p">:</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
+            <span class="k">if</span> <span class="mi">90</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">240</span><span class="p">:</span>
+                <span class="n">vortextiles</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">plat</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">-=</span> <span class="nb">int</span><span class="p">((</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">90</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">110</span><span class="p">:</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">Sound</span><span class="p">(</span><span class="s2">&quot;assets/sfx/anims/anim1glitch3.ogg&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">110</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">260</span><span class="p">:</span>
+                <span class="n">screenrotation</span> <span class="o">=</span> <span class="p">(</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">109</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">90</span> <span class="o">/</span> <span class="mi">150</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">180</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">260</span><span class="p">:</span>
+                <span class="n">zoom</span> <span class="o">+=</span> <span class="mf">4.5</span> <span class="o">/</span> <span class="mi">80</span>
+            <span class="k">if</span> <span class="mi">110</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">180</span><span class="p">:</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">moveup</span><span class="p">()</span>
+                <span class="n">plat</span><span class="o">.</span><span class="n">moveright</span><span class="p">()</span>
+                <span class="n">shadowsurf</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">Surface</span><span class="p">((</span><span class="n">width</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">height</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span> <span class="n">pygame</span><span class="o">.</span><span class="n">SRCALPHA</span><span class="p">)</span>
+                <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">rect</span><span class="p">(</span><span class="n">shadowsurf</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">colors</span><span class="o">.</span><span class="n">DPURPLE</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">180</span><span class="p">)),</span>
+                                 <span class="n">shadowsurf</span><span class="o">.</span><span class="n">get_rect</span><span class="p">())</span>
+                <span class="n">shake</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">((</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">),</span> <span class="nb">int</span><span class="p">((</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">screenrotation</span> <span class="o">=</span> <span class="p">(</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">109</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">90</span> <span class="o">/</span> <span class="mi">130</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">180</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
+                <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">rect</span><span class="p">(</span><span class="n">shadowsurf</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">colors</span><span class="o">.</span><span class="n">DPURPLE</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">-</span> <span class="mi">180</span><span class="p">),</span> <span class="n">shadowsurf</span><span class="o">.</span><span class="n">get_rect</span><span class="p">())</span>
+                <span class="n">shake</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">((</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">),</span> <span class="nb">int</span><span class="p">((</span><span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">300</span><span class="p">:</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">Sound</span><span class="p">(</span><span class="s2">&quot;assets/sfx/anims/anim1glitch4.ogg&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">360</span><span class="p">:</span>
+                <span class="n">vortextiles</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;assets/imgx/escape.png&quot;</span><span class="p">)</span>
+                <span class="n">vortextiles</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;assets/imgx/spawn.png&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">shake</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">shadowsurf</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">Surface</span><span class="p">((</span><span class="n">screenwidth</span><span class="p">,</span> <span class="n">screenheight</span><span class="p">),</span> <span class="n">pygame</span><span class="o">.</span><span class="n">SRCALPHA</span><span class="p">)</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animsound&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">play</span><span class="p">()</span>
+            <span class="k">if</span> <span class="mi">420</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">570</span><span class="p">:</span>
+                <span class="n">zoom</span> <span class="o">-=</span> <span class="mf">15.5</span> <span class="o">/</span> <span class="mi">150</span>
+            <span class="k">if</span> <span class="mi">420</span> <span class="o">&lt;=</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">480</span><span class="p">:</span>
+                <span class="n">screenrotation</span> <span class="o">-=</span> <span class="mf">1.5</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">510</span><span class="p">:</span>
+                <span class="n">mute</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">920</span><span class="p">:</span>
+                <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animlive&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;animtime&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;cutscene&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">animations</span><span class="p">[</span><span class="s1">&#39;cutscenecount&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">baseaccel</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">airaccel</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">deaccel</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">airdeaccel</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">turnrate</span> <span class="o">=</span> <span class="mi">8</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">transportmomentum</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">moving</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">vertforce</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">gravity</span> <span class="o">=</span> <span class="mf">1.25</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumpheight</span> <span class="o">=</span> <span class="mi">12</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">tvel</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumping</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">minjump</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">maxjump</span> <span class="o">=</span> <span class="n">plat</span><span class="o">.</span><span class="n">jumpheight</span> <span class="o">/</span> <span class="n">plat</span><span class="o">.</span><span class="n">gravity</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumpholding</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumptime</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumpsmoothing</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">jumprelease</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">grounded</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">plat</span><span class="o">.</span><span class="n">escaped</span> <span class="o">=</span> <span class="kc">True</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Creates an animation using in-game mechanics at the start of a select few levels. Animations
+are stored inside the function.</p>
+<h3 id="shake">shake()<a class="headerlink" href="#shake" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="game.shake"></a>
+  <div class="doc doc-contents first">
+  
+      <p>:param shakeduration: how long the shake lasts
+:param xshakeintensity: how severe the shake is horizontally (in pixels)
+:param yshakeintensity: how severe the shake is vertically (in pixels)
+:param xshakedecay: how many pixels xshakeintensity decreases per frame
+:param yshakedecay: how many pixels yshakeintensity decreases per frame
+:return: nothing</p>
+
+          <details class="quote">
+            <summary> <code>game.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">704</span>
+<span class="normal">705</span>
+<span class="normal">706</span>
+<span class="normal">707</span>
+<span class="normal">708</span>
+<span class="normal">709</span>
+<span class="normal">710</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span>
+<span class="normal">714</span>
+<span class="normal">715</span>
+<span class="normal">716</span>
+<span class="normal">717</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">shake</span><span class="p">(</span><span class="n">shakeduration</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">xshakeintensity</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">yshakeintensity</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">xshakedecay</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">yshakedecay</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param shakeduration: how long the shake lasts</span>
+<span class="sd">    :param xshakeintensity: how severe the shake is horizontally (in pixels)</span>
+<span class="sd">    :param yshakeintensity: how severe the shake is vertically (in pixels)</span>
+<span class="sd">    :param xshakedecay: how many pixels xshakeintensity decreases per frame</span>
+<span class="sd">    :param yshakedecay: how many pixels yshakeintensity decreases per frame</span>
+<span class="sd">    :return: nothing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">shaketime</span><span class="p">,</span> <span class="n">shakeintensity</span><span class="p">,</span> <span class="n">shakedecay</span>
+
+    <span class="n">shaketime</span> <span class="o">=</span> <span class="n">shakeduration</span>
+    <span class="n">shakeintensity</span> <span class="o">=</span> <span class="p">[</span><span class="n">xshakeintensity</span><span class="p">,</span> <span class="n">yshakeintensity</span><span class="p">]</span>
+    <span class="n">shakedecay</span> <span class="o">=</span> <span class="p">[</span><span class="n">xshakedecay</span><span class="p">,</span> <span class="n">yshakedecay</span><span class="p">]</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Called to cause screenshake.</p>
+<h3 id="push">push()<a class="headerlink" href="#push" title="Permanent link">#</a></h3>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<a id="game.push"></a>
+  <div class="doc doc-contents first">
+  
+      <p>:param direction: the direction to push
+:param instigators: the tiles that are pushing
+:param safesprites: the tiles that should not be pushed this call
+:param weight: how powerful the push force is, tiles with a higher weight won't be pushed
+:param mercy: if off, collisions with lower weight will effectively be killed
+:return: nothing</p>
+
+          <details class="quote">
+            <summary> <code>game.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">722</span>
+<span class="normal">723</span>
+<span class="normal">724</span>
+<span class="normal">725</span>
+<span class="normal">726</span>
+<span class="normal">727</span>
+<span class="normal">728</span>
+<span class="normal">729</span>
+<span class="normal">730</span>
+<span class="normal">731</span>
+<span class="normal">732</span>
+<span class="normal">733</span>
+<span class="normal">734</span>
+<span class="normal">735</span>
+<span class="normal">736</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
+<span class="normal">739</span>
+<span class="normal">740</span>
+<span class="normal">741</span>
+<span class="normal">742</span>
+<span class="normal">743</span>
+<span class="normal">744</span>
+<span class="normal">745</span>
+<span class="normal">746</span>
+<span class="normal">747</span>
+<span class="normal">748</span>
+<span class="normal">749</span>
+<span class="normal">750</span>
+<span class="normal">751</span>
+<span class="normal">752</span>
+<span class="normal">753</span>
+<span class="normal">754</span>
+<span class="normal">755</span>
+<span class="normal">756</span>
+<span class="normal">757</span>
+<span class="normal">758</span>
+<span class="normal">759</span>
+<span class="normal">760</span>
+<span class="normal">761</span>
+<span class="normal">762</span>
+<span class="normal">763</span>
+<span class="normal">764</span>
+<span class="normal">765</span>
+<span class="normal">766</span>
+<span class="normal">767</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="n">direction</span><span class="p">:</span> <span class="n">Direction</span><span class="p">,</span> <span class="o">*</span><span class="n">instigators</span><span class="p">:</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">Sprite</span><span class="p">,</span> <span class="n">safesprites</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mercy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param direction: the direction to push</span>
+<span class="sd">    :param instigators: the tiles that are pushing</span>
+<span class="sd">    :param safesprites: the tiles that should not be pushed this call</span>
+<span class="sd">    :param weight: how powerful the push force is, tiles with a higher weight won&#39;t be pushed</span>
+<span class="sd">    :param mercy: if off, collisions with lower weight will effectively be killed</span>
+<span class="sd">    :return: nothing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">Direction</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Direction required as input&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">safesprites</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">safesprites</span> <span class="o">=</span> <span class="p">[</span><span class="n">safesprites</span><span class="p">]</span>
+    <span class="n">nextcollide</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">instigators</span><span class="p">:</span>
+        <span class="n">collisiongroup</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">solidtiles</span> <span class="k">if</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">entity</span> <span class="ow">and</span> <span class="n">s</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">safesprites</span><span class="p">]</span>
+        <span class="n">collided</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">sprite</span><span class="o">.</span><span class="n">spritecollide</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">collisiongroup</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">collision</span> <span class="ow">in</span> <span class="n">collided</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">collision</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="n">collision</span><span class="o">.</span><span class="n">weight</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">weight</span> <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">entity</span><span class="o">.</span><span class="n">weight</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">up</span><span class="p">:</span>
+                    <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">top</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">left</span><span class="p">:</span>
+                    <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">right</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">left</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">down</span><span class="p">:</span>
+                    <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottom</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
+                    <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">left</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">right</span>
+                <span class="n">nextcollide</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">collision</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">mercy</span><span class="p">:</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mi">32</span><span class="p">,</span> <span class="o">-</span><span class="mi">32</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">up</span><span class="p">:</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottom</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">left</span><span class="p">:</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">left</span> <span class="o">=</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">right</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">down</span><span class="p">:</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">top</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">Direction</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">right</span> <span class="o">=</span> <span class="n">collision</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">left</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="s2">&quot;push&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
+                <span class="n">entity</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nextcollide</span><span class="p">:</span>
+        <span class="n">push</span><span class="p">(</span><span class="n">direction</span><span class="p">,</span> <span class="o">*</span><span class="n">nextcollide</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><p>Recursive function that handles the majority of cases where an object needs to push another.
+However, for simple cases like player collision, it is not needed.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../tiles/" class="btn btn-neutral float-left" title="tiles"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../modding/" class="btn btn-neutral float-right" title="modding">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../tiles/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../modding/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

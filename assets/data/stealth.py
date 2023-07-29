@@ -9,7 +9,7 @@ class Guard(pygame.sprite.Sprite):
         'alert': pygame.image.load("../img/stealth/exclamationmark.png"),
     }
 
-    def __init__(self, x, y, image="../img/stealth/guard.png", facing=Direction.left, speed=None, path=None):
+    def __init__(self, x, y, image="../imgx/stealth/guard.png", facing=Direction.left, speed=None, path=None):
         super().__init__()
         self.x = x
         self.y = y

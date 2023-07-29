@@ -15,14 +15,20 @@ color codes:
     light - 192, 192, 192
     vortex - N/A
     piston - 100, 100, 100 [(0-0-3)rotation]
-    dropper - (196, 128, 0)
-    conveyor - (128, 128, 0)
-    conductor - (128, 128, 128)
-    grappler - (64, 128, 196)
-    stickyelev - (200, 196, 0)
+    guard - 32, 32, 32
+    dropper - 196, 128, 0 [id, (0-0-3)rotation]
+    conveyor - 128, 128, 0 [('l'-'l'-'r')rotation]
+    conductor - 128, 128, 128
+    grappler - 64, 128, 196 [id, (0-0-3)rotation]
+    stickyelev - 200, 196, 0
+    transformer - 196, 196, 196 [id]
+    broadcaster - 197, 197, 197 [id]
+    picker - 198, 198, 198 [id, (0-0-3)rotation]
+    tripwire - 199, 199, 199 [id, (0-0-3)rotation]
 
     diamond - 0, 255, 255
     glass - 64, 64, 64
+    magma - 196, 0, 0
 
     (x is ID, y is special attribute)
     value range format: (minval-defaultval-maxval)
@@ -49,10 +55,16 @@ tile codes:
     conductor - 17
     grappler - 18
     stickyelev - 19
+    transformer - 20
+    broadcaster - 21
+    picker - 22
+    tripwire - 23
 
 alt:
     diamond: [4, 0]
     glass: [1, 0]
+    magma: [3, 0]
+
 
 multiple spawns are not supported
 

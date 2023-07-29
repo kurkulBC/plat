@@ -50,6 +50,8 @@ while run:
             savedpixels.append(11)
         elif data == (100, 100, 100):
             savedpixels.append([13, 0])
+        elif data == (32, 32, 32):
+            savedpixels.append(14)
         elif data == (196, 128, 0):
             savedpixels.append([15, -1])
         elif data == (128, 128, 0):
@@ -58,11 +60,23 @@ while run:
             savedpixels.append(17)
         elif data == (64, 128, 196):
             savedpixels.append([18, -1])
+        elif data == (200, 196, 0):
+            savedpixels.append(20)
+        elif data == (196, 196, 196):
+            savedpixels.append([20, -1])
+        elif data == (197, 197, 197):
+            savedpixels.append([21, -1])
+        elif data == (198, 198, 198):
+            savedpixels.append([22, -1])
+        elif data == (199, 199, 199):
+            savedpixels.append([23, -1])
 
         elif data == (0, 255, 255):
             savedpixels.append([4, 0])
         elif data == (64, 64, 64):
             savedpixels.append([1, 0])
+        elif data == (196, 0, 0):
+            savedpixels.append([3, 0])
     if newline:
         newline = False
         posx = 0

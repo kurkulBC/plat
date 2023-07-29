@@ -5,7 +5,7 @@ from assets.data.lvldata import leveldescs as leveldescs
 from assets.data.lvldata import anims as anims
 import assets.data.colors as colors
 import assets.hax as hax
-from assets.data.common import screenwidth, screenheight, width, height, size, Direction, ShakeLayered
+from assets.data.common import screenwidth, screenheight, width, height, size, Direction, ShakeLayered, boundscheck
 import random
 from glitch_this import ImageGlitcher
 import timeit
@@ -13,10 +13,12 @@ from assets.data import shadowcasting as shca
 from assets.data import tilegroups
 from math import dist, copysign
 
-# init ~1.7s
-# pygame.init()
-# init ~0.1 :)
-pygame.mixer.init()
+# pygame.init() - init ~1.7s
+# this - init ~0.1s :)
+try:
+    pygame.mixer.init()
+except pygame.error:
+    pass
 pygame.font.init()
 
 hax.active = False
@@ -68,12 +70,14 @@ grapplertiles = pygame.sprite.Group()
 hooktiles = pygame.sprite.Group()
 hooktrails = pygame.sprite.Group()
 sensortiles = pygame.sprite.Group()
+shiftertiles = pygame.sprite.Group()
 
 # create special groups
 projectiles = pygame.sprite.Group()
 solidtiles = pygame.sprite.Group()
 collidetiles = pygame.sprite.Group()
 fallingtiles = pygame.sprite.Group()
+bgtiles = pygame.sprite.Group()
 tiles = ShakeLayered()
 
 guards = pygame.sprite.Group()
@@ -82,7 +86,7 @@ wireless = pygame.sprite.Group()
 # load sound
 ost = pygame.mixer.music
 sfx = {
-    # like this so it doesn't run an error
+    # like this so it doesn't return an error
     s: pygame.mixer.Sound(f"assets/sfx/crush.ogg") for s in
     [
         'crush',
@@ -93,6 +97,7 @@ sfx = {
         'press',
         'break',
         'drop',
+
         'hook',
         'reel',
         'pick',
@@ -111,7 +116,7 @@ animations = {
 if hax.active:
     levelcount = hax.startlevel - 2
 else:
-    levelcount = 1
+    levelcount = 5 - 2
 currentlvl = [0]
 stealth = False
 
@@ -422,6 +427,7 @@ class Player(pygame.sprite.Sprite):
 
             self.alive = False
             tiles.update()
+            wireless.update()
             guards.update()
             self.rect.x = spawn.x + size / 4
             self.rect.y = spawn.y + size / 2
@@ -504,6 +510,14 @@ class Particle(object):
 
 # surrounding check for a tile's connection to power
 def power(sprite: pygame.sprite.Sprite, aslist=True, exact=False) -> dict[Direction, pygame.sprite.Sprite]:
+    """
+    :param sprite: the sprite to power
+    :param aslist: returns power as a dict if turned on, else bool
+    :param exact: only counts being powered from a direction if the
+    power source is exactly aligned
+    :return: dict of (direction -> sprite powered from direction?),
+    or, if aslist is False, bool of if the sprite has any power
+    """
     powered = {
         Direction.up: None,
         Direction.left: None,
@@ -568,15 +582,23 @@ power.conductorcache = pygame.sprite.Group()
 
 # image glitching
 def glitch(image):
+    """
+    :param image: image to apply a glitch effect to
+    :return: the image after the glitch effect is applied
+    """
     global glitchimg
     random.seed(random.randint(1, 20000000))
     x = random.random()
     glitchimg = glitcher.glitch_image(src_img=image, glitch_amount=5, seed=x, color_offset=True, frames=1)
     glitchimg.save(r"assets\img\anims\glitchimg.png", format="PNG")
+    return glitchimg
 
 
 # anim system
 def animate():
+    """
+    :return: nothing
+    """
     global animations
     global shadowsurf
     global zoom
@@ -634,8 +656,8 @@ def animate():
                 animations['animsound'].play()
                 animations['animsound'] = pygame.mixer.Sound("assets/sfx/anims/anim1glitch4.ogg")
             if animations['animtime'] == 360:
-                vortextiles.update("assets/img/escape.png")
-                vortextiles.update("assets/img/spawn.png", 1)
+                vortextiles.update("assets/imgx/escape.png")
+                vortextiles.update("assets/imgx/spawn.png", 1)
                 shake(10, 5, 5, 0, 0)
                 shadowsurf = pygame.Surface((screenwidth, screenheight), pygame.SRCALPHA)
                 animations['animsound'].play()
@@ -681,6 +703,14 @@ def animate():
 
 # screenshake
 def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=1, yshakedecay=1):
+    """
+    :param shakeduration: how long the shake lasts
+    :param xshakeintensity: how severe the shake is horizontally (in pixels)
+    :param yshakeintensity: how severe the shake is vertically (in pixels)
+    :param xshakedecay: how many pixels xshakeintensity decreases per frame
+    :param yshakedecay: how many pixels yshakeintensity decreases per frame
+    :return: nothing
+    """
     global shaketime, shakeintensity, shakedecay
 
     shaketime = shakeduration
@@ -691,6 +721,14 @@ def shake(shakeduration=30, xshakeintensity=20, yshakeintensity=20, xshakedecay=
 # push things around
 # entities won't push themselves, but safesprites won't be pushed by instigators
 def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: list = None, weight=None, mercy=True):
+    """
+    :param direction: the direction to push
+    :param instigators: the tiles that are pushing
+    :param safesprites: the tiles that should not be pushed this call
+    :param weight: how powerful the push force is, tiles with a higher weight won't be pushed
+    :param mercy: if off, collisions with lower weight will effectively be killed
+    :return: nothing
+    """
     if direction not in Direction:
         raise ValueError("Direction required as input")
     if not isinstance(safesprites, list):
@@ -713,7 +751,7 @@ def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: 
                 nextcollide.append(collision)
             else:
                 if not mercy:
-                    entity.kill()
+                    entity.rect.x, entity.rect.y = -32, -32
                     continue
                 if direction == Direction.up:
                     entity.rect.top = collision.rect.bottom
@@ -728,12 +766,6 @@ def push(direction: Direction, *instigators: pygame.sprite.Sprite, safesprites: 
 
     if nextcollide:
         push(direction, *nextcollide)
-
-
-def boundscheck(rect: pygame.rect.Rect) -> bool:
-    if rect.left < 0 or rect.right > width or rect.top < 0 or rect.right > height:
-        return False
-    return True
 
 
 # tile parent classes
@@ -854,7 +886,7 @@ class Tile(pygame.sprite.Sprite):
             if covered is not None:
                 return covered
 
-            raise ValueError("Direction required as input")
+        raise ValueError("Direction required as input")
 
     def coveredcorner(self, coverededges=None):
         if coverededges is None:
@@ -868,7 +900,7 @@ class Tile(pygame.sprite.Sprite):
             'upright': False,
         }
 
-        if coverededges['up'] and coverededges['left']:
+        if coverededges['up'] or coverededges['left']:
             self.rect.x -= 1
             self.rect.y -= 1
             coveredcorners['upleft'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
@@ -876,7 +908,7 @@ class Tile(pygame.sprite.Sprite):
             self.rect.x += 1
             self.rect.y += 1
 
-        if coverededges['left'] and coverededges['down']:
+        if coverededges['left'] or coverededges['down']:
             self.rect.x -= 1
             self.rect.y += 1
             coveredcorners['downleft'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
@@ -884,7 +916,7 @@ class Tile(pygame.sprite.Sprite):
             self.rect.x += 1
             self.rect.y -= 1
 
-        if coverededges['down'] and coverededges['right']:
+        if coverededges['down'] or coverededges['right']:
             self.rect.x += 1
             self.rect.y += 1
             coveredcorners['downright'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
@@ -892,7 +924,7 @@ class Tile(pygame.sprite.Sprite):
             self.rect.x -= 1
             self.rect.y -= 1
 
-        if coverededges['right'] and coverededges['up']:
+        if coverededges['right'] or coverededges['up']:
             self.rect.x += 1
             self.rect.y -= 1
             coveredcorners['upright'] = any([not pygame.sprite.spritecollideany(self, tempgroup),
@@ -951,18 +983,22 @@ class Tile(pygame.sprite.Sprite):
             self.vertforce = 0
 
         self.transportmomentum = [0, 0]
-        collidedtiles = pygame.sprite.spritecollide(self, collidetiles, False)
+        collidedtiles = pygame.sprite.spritecollide(self, [s for s in collidetiles if s != self], False)
         if collidedtiles:
             if not hax.active or not hax.noclip:
                 if not mute:
                     sfx['crush'].play()
+                self.rect.x, self.rect.y = -32, -32
+        if pygame.sprite.spritecollideany(self, lavatiles):
+            if not mute:
+                sfx['melt'].play()
+            self.rect.x, self.rect.y = -32, -32
 
 
 class TempObj(pygame.sprite.Sprite):
     def __init__(self, img=None, x=0, y=0, convert_alpha=False, rotate=0, weight=-1, layer=0):
         super().__init__()
         if img is not None:
-            self.weight = weight
             if convert_alpha:
                 self.image = pygame.image.load(f"assets/img/{img}.png").convert_alpha()
                 self.mask = pygame.mask.from_surface(self.image)
@@ -971,7 +1007,8 @@ class TempObj(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.image, rotate)
             self.rect = self.image.get_rect()
             self.rect.x, self.rect.y = x, y
-            self._layer = layer
+        self.weight = weight
+        self._layer = layer
 
     def update(self) -> bool:
         if not plat.alive:
@@ -1301,7 +1338,7 @@ class Spawn(Tile):
 
 class Lava(Tile):
     def __init__(self, x, y):
-        super().__init__("lava", x, y, layer=-1)
+        super().__init__("lava", x, y)
 
 
 class Esc(Tile):
@@ -1326,6 +1363,8 @@ class Elev(Tile):
 
         if power(self, False):
             return f"{self} powered"
+        if pygame.sprite.spritecollideany(self, [s for s in doortiles if s.on]):
+            return
 
         cls = type(self)
 
@@ -1535,7 +1574,6 @@ class Switch(Tile):
                 self.mask = self.maskcache[self.pressed]
 
 
-# perhaps set door weight to high to stop piston pushes?
 class Door(Tile):
     def __init__(self, x, y, ident, startoff=False):
         super().__init__("door", x, y, True, weight=2, layer=1)
@@ -1823,7 +1861,7 @@ class PistonRod(Tile):
 
 class Diamond(Tile):
     def __init__(self, x, y):
-        super().__init__("stealth/diamond", x, y, True)
+        super().__init__("stealth/diamond", x, y, True, layer=1)
 
 
 class Glass(Tile):
@@ -1840,10 +1878,10 @@ class Glass(Tile):
 
     def coveredcorner(self, coverededges=None):
         return {
-            'upleft': False,
-            'downleft': False,
-            'downright': False,
-            'upright': False,
+            'upleft': True,
+            'downleft': True,
+            'downright': True,
+            'upright': True,
         }
 
 
@@ -1866,25 +1904,28 @@ class Dropper(Tile):
             self.child.kill()
             return
 
-        if not self.child.alive() and (self.ident == ident or power(self, False)):
-            self.child.populategroups()
-            sfx['drop'].play()
+        if not self.child.alive():
+            if self.ident == ident or power(self, False):
+                if self.direction == Direction.up:
+                    self.child = Droplet(self.rect.midtop[0] - size / 8, self.rect.midtop[1] - size / 4)
+                elif self.direction == Direction.left:
+                    self.child = Droplet(self.rect.midleft[0] - size / 4, self.rect.midleft[1] - size / 8)
+                elif self.direction == Direction.down:
+                    self.child = Droplet(self.rect.midbottom[0] - size / 8, self.rect.midbottom[1])
+                elif self.direction == Direction.right:
+                    self.child = Droplet(self.rect.midright[0], self.rect.midright[1] - size / 8)
+                self.child.populategroups()
+                sfx['drop'].play()
 
 
 class Droplet(Tile):
     def __init__(self, x, y):
         super().__init__("droplet", x, y, weight=-1)
 
-    def update(self):
-        if not super().update():
-            return
-        if not self.alive():
-            self.rect.x, self.rect.y = self.x, self.y
-
 
 class Conveyor(Tile):
     def __init__(self, x, y, facing=Direction.left, speed=2):
-        super().__init__("conveyor", x, y, flip=facing != Direction.left)
+        super().__init__("conveyor", x, y, flip=facing not in (Direction.left, 'l'))
         self.facing = facing
         if isinstance(facing, str):
             if facing.lower() == 'l':
@@ -1945,6 +1986,7 @@ class Grappler(Tile):
         self.ident = ident
         self.rotation = rotation
         self.child = None
+        self.on = True
         self.speed = -speed if rotation < 2 else speed
         self.trailcount = 0
         self.channel = None
@@ -1953,6 +1995,7 @@ class Grappler(Tile):
         if not super().update():
             if self.child is not None:
                 self.child = None
+                self.on = True
                 self.trailcount = 0
                 self.channel = None
             return
@@ -2114,17 +2157,17 @@ class StickyElev(Elev):
 
 
 class Sensor(Tile):
-    def __init__(self, img, x, y, ident=-1, convert_alpha=False, rotation=0, remote=True, layer=0):
-        super().__init__(img, x, y, convert_alpha=convert_alpha, rotate=rotation, layer=layer)
+    def __init__(self, img, x, y, ident=-1, convert_alpha=False, rotate=0, remote=True, layer=0):
+        super().__init__(img, x, y, convert_alpha=convert_alpha, rotate=rotate, layer=layer)
         self.ident = ident
         self.remote = remote
         self.on = False
 
-    def update(self):
+    def update(self, *args):
         if not super().update():
             return
 
-        if self.sense():
+        if self.sense(*args):
             if self.remote:
                 wireless.update(self.ident)
             else:
@@ -2132,7 +2175,7 @@ class Sensor(Tile):
         else:
             self.on = False
 
-    def sense(self) -> bool:
+    def sense(self, *args) -> bool:
         if isinstance(self, Sensor):
             return True
         return False
@@ -2164,7 +2207,7 @@ class Broadcaster(Sensor):
         }
 
     def sense(self) -> bool:
-        if power(self, False) is not self.lastpower:
+        if bool(power(self, False)) is not self.lastpower:
             self.lastpower = not self.lastpower
             self.image = self.imgcache[self.lastpower]
             return True
@@ -2173,7 +2216,7 @@ class Broadcaster(Sensor):
 
 class Picker(Sensor):
     def __init__(self, x, y, ident=-1, rotation=0):
-        super().__init__("picker", x, y, ident, convert_alpha=True, rotation=rotation)
+        super().__init__("picker", x, y, ident, convert_alpha=True, rotate=rotation)
 
     def sense(self) -> bool:
         contact = None
@@ -2203,22 +2246,28 @@ class Picker(Sensor):
 
 class Tripwire(Sensor):
     def __init__(self, x, y, ident=-1, rotation=0):
-        super().__init__("tripwire", x, y, ident, rotation=rotation)
+        super().__init__("tripwire", x, y, ident, rotate=rotation)
         self.rotation = rotation
         self.child = Wire(self)
         tiles.add(self.child)
         self.speed = -size if self.rotation < 2 else size
         self.prevhit = False
+        self.imgcache = {
+            False: self.image,
+            True: pygame.transform.rotate(pygame.image.load("assets/img/tripwire2.png").convert(), rotation * 90),
+        }
 
     def sense(self) -> bool:
-        self.child.rect.x, self.child.rect.y = self.rect.x + 8, self.rect.y + 8
+        self.child.rect.x, self.child.rect.y = self.rect.x + 12, self.rect.y + 12
+        self.child.rect.width, self.child.rect.height = 8, 8
         if not power(self, False):
-            self.child.rect.width, self.child.rect.y = 16, 16
+            self.image = self.imgcache[False]
             self.child.update()
             return False
+        self.image = self.imgcache[True]
 
-        tempgroup = [s for s in solidtiles if s != self]
-        while not (collision := pygame.sprite.spritecollideany(self.child, tempgroup)) and boundscheck(self.child):
+        tempgroup = [s for s in (plat, *fallingtiles, *solidtiles) if s != self]
+        while not (collision := pygame.sprite.spritecollideany(self.child, tempgroup)) and boundscheck(self.child.rect):
             if self.rotation % 2 == 0:
                 self.child.rect.y += self.speed
             else:
@@ -2227,24 +2276,24 @@ class Tripwire(Sensor):
         if self.direction == Direction.up:
             if collision:
                 self.child.rect.top = collision.rect.bottom
-            self.child.rect.height = self.rect.y + 8 - self.child.rect.top
+            self.child.rect.height = self.rect.y + 12 - self.child.rect.top
         elif self.direction == Direction.left:
             if collision:
                 self.child.rect.left = collision.rect.right
-            self.child.rect.width = self.rect.x + 8 - self.child.rect.left
+            self.child.rect.width = self.rect.x + 12 - self.child.rect.left
         elif self.direction == Direction.down:
             if collision:
                 self.child.rect.bottom = collision.rect.top
-            self.child.rect.height = self.child.rect.bottom - self.rect.y + 8
-            self.child.rect.y = self.rect.y + 8
+            self.child.rect.height = self.child.rect.bottom - self.rect.y + 12
+            self.child.rect.y = self.rect.y + 12
         elif self.direction == Direction.right:
             if collision:
                 self.child.rect.right = collision.rect.left
-            self.child.rect.width = self.child.rect.right - self.rect.x + 8
-            self.child.rect.x = self.rect.x + 8
+            self.child.rect.width = self.child.rect.right - self.rect.x + 12
+            self.child.rect.x = self.rect.x + 12
         self.child.update()
 
-        if pygame.sprite.spritecollideany(self.child, [plat, *fallingtiles]):
+        if collision in (plat, *fallingtiles):
             if not self.prevhit:
                 self.prevhit = True
                 return True
@@ -2255,8 +2304,8 @@ class Tripwire(Sensor):
 
 class Wire(TempObj):
     def __init__(self, host):
-        super().__init__(layer=1)
-        self.rect = pygame.rect.Rect(host.x + 8, host.y + 8, 16, 16)
+        super().__init__(weight=1, layer=1)
+        self.rect = pygame.rect.Rect(host.x + 12, host.y + 12, 8, 8)
         self.image = pygame.Surface((self.rect.width, self.rect.height))
         self.image.fill(colors.RED)
 
@@ -2264,8 +2313,100 @@ class Wire(TempObj):
         if not plat.alive:
             return
 
-        self.image = pygame.Surface((self.rect.width, self.rect.height))
-        self.image.fill(colors.RED)
+        if self.image.get_rect() != self.rect:
+            self.image = pygame.Surface((self.rect.width, self.rect.height))
+            self.image.fill(colors.RED)
+
+
+class Magma(Lava):
+    def __init__(self, x, y, spreadspace=3, spreaddelay=30, spawned=False):
+        super().__init__(x, y)
+        self.spreadspace = spreadspace
+        self.spreaddelay = spreaddelay
+        self.spreadtime = self.spreaddelay
+        self.spawned = spawned
+        self.done = False
+
+    def update(self):
+        if not super().update():
+            if self.spawned:
+                self.kill()
+            self.spreadtime = self.spreaddelay
+            self.done = False
+            return
+
+        if self.done:
+            return
+        self.spreadtime -= 1 if self.spreadtime else 0
+        if self.spreadtime != 0 or pygame.sprite.spritecollideany(self, solidtiles):
+            return
+
+        otherlava = [s for s in lavatiles if s != self]
+
+        self.rect.y += size
+        if not self.tryspawn():
+            self.rect.y -= size
+
+            self.rect.x -= size
+            self.tryspawn()
+            self.rect.x += size
+
+            self.rect.x += size
+            self.tryspawn()
+            self.rect.x -= size
+
+            self.rect.y += size
+        self.rect.y -= size
+
+        for i in range(self.spreadspace):
+            self.rect.y -= size
+            if not [s for s in pygame.sprite.spritecollide(self, otherlava, False)]:
+                self.rect.y += size * (i + 1)
+                break
+        else:
+            self.rect.y += size * self.spreadspace
+
+            self.rect.x -= size
+            self.tryspawn()
+            self.rect.x += size
+
+            self.rect.x += size
+            self.tryspawn()
+            self.rect.x -= size
+
+        self.spreadtime = self.spreaddelay
+
+        if self.spawned:
+            self.rect.y -= size
+            if [s for s in pygame.sprite.spritecollide(self, otherlava, False)]:
+                self.rect.y += size
+            else:
+                self.rect.y += size
+                self.rect.x -= size
+                if [s for s in pygame.sprite.spritecollide(self, otherlava, False)]:
+                    self.rect.x += size
+                else:
+                    self.rect.x += size
+                    self.rect.x += size
+                    if [s for s in pygame.sprite.spritecollide(self, otherlava, False)]:
+                        self.rect.x -= size
+                    else:
+                        self.kill()
+
+        self.done = True
+
+    def tryspawn(self):
+        if [s for s in pygame.sprite.spritecollide(self, bgtiles, False)] and \
+                not pygame.sprite.spritecollideany(self, solidtiles) and boundscheck(self.rect):
+            Magma(self.rect.x, self.rect.y, self.spreadspace, self.spreaddelay, True).populategroups()
+            return True
+        return False
+
+
+class Shifter(Tile):
+    def __init__(self, x, y, ident=-1):
+        super().__init__("shifter", x, y)
+        self.ident = ident
 
 
 # refresh every frame
@@ -2286,13 +2427,13 @@ def redrawgamewindow():
         win.blit(sprite.image, (sprite.rect.x + screenshake[0], sprite.rect.y + screenshake[1]))
     if stealth:
         win.blit(shadowsurf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
-        # for sprite in lightingtiles:
-        #     for coord in sprite.visiblepolycache[0]:
-        #         pygame.draw.circle(win, colors.RED, coord, 2)
+        for sprite in lightingtiles:
+            for coord in sprite.visiblepolycache[0]:
+                pygame.draw.circle(win, colors.RED, coord, 2)
         #     for coord in Light.polycache[0]:
         #         pygame.draw.line(win, colors.RED, sprite.rect.center, coord)
         # for coord in Light.polycache[0]:
-        #     pygame.draw.circle(win, colors.RED, coord, 1)
+        #     pygame.draw.circle(win, colors.RED, coord, 2)
 
     # ~1ms
     pygame.display.flip()
@@ -2308,8 +2449,8 @@ leveltext = font1.render("???", False, colors.WHITE)
 
 # main loop
 run = True
-# TODO: 6 - glass/tripwires, 7 - droppers/conveyors/pickers, 8 - transformers/broadcasters/conductors,
-#  9 - grapplers/sticky elevators, 10 - multi-level stages/boss
+# TODO: 8 - transformers/broadcasters/conductors, 9 - grapplers/sticky elevators,
+#  10 - multi-level stages/boss
 while run:
     start_time = timeit.default_timer()
     clock.tick(framerate)
@@ -2346,35 +2487,35 @@ while run:
                     if tile == 0:
                         spacetiles.add(Space(levelx, levely))
                         bgloaded = True
-                    if tile == 1:
+                    elif tile == 1:
                         blocktiles.add(Block(levelx, levely))
-                    if tile == 2:
+                    elif tile == 2:
                         spawn = Spawn(levelx, levely)
-                    if tile == 3:
+                    elif tile == 3:
                         lavatiles.add(Lava(levelx, levely))
                         bgloaded = True
-                    if tile == 4:
+                    elif tile == 4:
                         esctiles.add(Esc(levelx, levely))
-                    if tile == 5:
+                    elif tile == 5:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
                         elevtiles.add(Elev(levelx, levely))
-                    if tile == 6:
+                    elif tile == 6:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
-                    if tile == 9:
+                    elif tile == 9:
                         rocktiles.add(Rock(levelx, levely))
-                    if tile == 10:
+                    elif tile == 10:
                         turrettiles.add(Turret(levelx, levely))
-                    if tile == 11:
+                    elif tile == 11:
                         lighttiles.add(Light(levelx, levely))
-                    if tile == 14:
+                    elif tile == 14:
                         guards.add(Guard(levelx, levely))
-                    if tile == 16:
+                    elif tile == 16:
                         conveyortiles.add(Conveyor(levelx, levely))
-                    if tile == 17:
+                    elif tile == 17:
                         conductortiles.add(Conductor(levelx, levely))
-                    if tile == 19:
+                    elif tile == 19:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
                         elevtiles.add(StickyElev(levelx, levely))
@@ -2382,83 +2523,92 @@ while run:
                     if tile[0] == 1:
                         if tile[1] == 0:
                             blocktiles.add(Glass(levelx, levely))
-                    if tile[0] == 4:
+                    elif tile[0] == 3:
+                        if tile[1] == 0:
+                            lavatiles.add(Magma(levelx, levely))
+                            bgloaded = True
+                    elif tile[0] == 4:
                         if tile[1] == 0:
                             esctiles.add(Diamond(levelx, levely))
-                    if tile[0] == 5:
+                    elif tile[0] == 5:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
                         elevtiles.add(Elev(levelx, levely, tile[1]))
-                    if tile[0] == 7:
+                    elif tile[0] == 7:
                         spacetiles.add(Space(levelx, levely))
                         bgloaded = True
                         switchtiles.add(Switch(levelx, levely, tile[1]))
-                    if tile[0] == 8:
-                        if tile[2] == 0:
-                            spacetiles.add(Space(levelx, levely))
-                            bgloaded = True
-                        if tile[2] == 1:
-                            blocktiles.add(Block(levelx, levely))
-                        if tile[2] == 3:
-                            lavatiles.add(Lava(levelx, levely))
-                            bgloaded = True
-                        if tile[2] == 4:
-                            esctiles.add(Esc(levelx, levely))
-                        if tile[2] == 5:
-                            circuittiles.add(Circuit(levelx, levely))
-                            bgloaded = True
-                            elevtiles.add(Elev(levelx, levely))
-                        if tile[2] == 6:
-                            circuittiles.add(Circuit(levelx, levely))
-                            bgloaded = True
-                        if tile[2] == 9:
-                            rocktiles.add(Rock(levelx, levely))
-                        if tile[2] == 10:
-                            if len(tile) == 5:
-                                turrettiles.add(Turret(levelx, levely, tile[3], tile[4]))
-                            elif len(tile) == 4:
-                                turrettiles.add(Turret(levelx, levely, tile[3]))
-                            else:
-                                turrettiles.add(Turret(levelx, levely))
-                        if tile[2] == 11:
-                            lighttiles.add(Light(levelx, levely))
+                    elif tile[0] == 8:
+                        if isinstance(tile[2], int):
+                            if tile[2] == 0:
+                                spacetiles.add(Space(levelx, levely))
+                                bgloaded = True
+                            elif tile[2] == 1:
+                                blocktiles.add(Block(levelx, levely))
+                            elif tile[2] == 3:
+                                lavatiles.add(Lava(levelx, levely))
+                                bgloaded = True
+                            elif tile[2] == 4:
+                                esctiles.add(Esc(levelx, levely))
+                            elif tile[2] == 5:
+                                circuittiles.add(Circuit(levelx, levely))
+                                bgloaded = True
+                                elevtiles.add(Elev(levelx, levely))
+                            elif tile[2] == 6:
+                                circuittiles.add(Circuit(levelx, levely))
+                                bgloaded = True
+                            elif tile[2] == 9:
+                                rocktiles.add(Rock(levelx, levely))
+                            elif tile[2] == 10:
+                                if len(tile) == 5:
+                                    turrettiles.add(Turret(levelx, levely, tile[3], tile[4]))
+                                elif len(tile) == 4:
+                                    turrettiles.add(Turret(levelx, levely, tile[3]))
+                                else:
+                                    turrettiles.add(Turret(levelx, levely))
+                            elif tile[2] == 11:
+                                lighttiles.add(Light(levelx, levely))
+                        elif isinstance(tile[2], list):
+                            if tile[2] == [3, 0]:
+                                lavatiles.add(Magma(levelx, levely))
+                                bgloaded = True
 
                         if len(tile) == 4:
                             doortiles.add(Door(levelx, levely, tile[1], tile[3]))
                         else:
                             doortiles.add(Door(levelx, levely, tile[1]))
-                    if tile[0] == 9:
+                    elif tile[0] == 9:
                         rocktiles.add(Rock(levelx, levely, tile[1]))
-                    if tile[0] == 10:
+                    elif tile[0] == 10:
                         if len(tile) == 3:
                             turrettiles.add(Turret(levelx, levely, tile[1], tile[2]))
                         elif len(tile) == 2:
                             turrettiles.add(Turret(levelx, levely, tile[1]))
                         else:
                             turrettiles.add(Turret(levelx, levely))
-                    if tile[0] == 12:
-                        vortextiles.add(Vortex(levelx, levely, tile[1], "assets/img/anims/greenglitch.png",
+                    elif tile[0] == 12:
+                        vortextiles.add(Vortex(levelx, levely, tile[1], "assets/imgx/anims/greenglitch.png",
                                                "escape"))
                         # if tile[1] == 0:
-                        #     prevortextiles.append([levelx, levely, "assets/img/space.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/space.png"])
                         # if tile[1] == 1:
-                        #     prevortextiles.append([levelx, levely, "assets/img/block.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/block.png"])
                         # if tile[1] == 2:
-                        #     prevortextiles.append([levelx, levely, "assets/img/spawn.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/spawn.png"])
                         # if tile[1] == 3:
-                        #     prevortextiles.append([levelx, levely, "assets/img/lava.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/lava.png"])
                         # if tile[1] == 4:
-                        #     prevortextiles.append([levelx, levely, "assets/img/escape.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/escape.png"])
                         # if tile[1] == 5:
-                        #     prevortextiles.append([levelx, levely, "assets/img/circuit.png"])
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/circuit.png"])
                         # if tile[1] == 6:
-                        #     prevortextiles.append([levelx, levely, "assets/img/elevator.png"])
-                    if tile[0] == 13:
+                        #     prevortextiles.append([levelx, levely, "assets/imgx/elevator.png"])
+                    elif tile[0] == 13:
                         if len(tile) == 3:
                             pistontiles.add(Piston(levelx, levely, tile[1], tile[2]))
                         else:
                             pistontiles.add(Piston(levelx, levely, tile[1]))
-                    if tile[0] == 14:
+                    elif tile[0] == 14:
                         if len(tile) == 5:
                             guards.add(Guard(levelx, levely, tile[1], path=tile[2], facing=tile[3], speed=tile[4]))
                         elif len(tile) == 4:
@@ -2467,25 +2617,39 @@ while run:
                             guards.add(Guard(levelx, levely, tile[1], path=tile[2]))
                         else:
                             guards.add(Guard(levelx, levely, tile[1]))
-                    if tile[0] == 15:
+                    elif tile[0] == 15:
                         if len(tile) == 3:
                             droppertiles.add(Dropper(levelx, levely, tile[1], tile[2]))
                         else:
                             droppertiles.add(Dropper(levelx, levely, tile[1]))
-                    if tile[0] == 16:
+                    elif tile[0] == 16:
                         if len(tile) == 3:
                             conveyortiles.add(Conveyor(levelx, levely, tile[1], tile[2]))
                         else:
                             conveyortiles.add(Conveyor(levelx, levely, tile[1]))
-                    if tile[0] == 18:
+                    elif tile[0] == 18:
                         if len(tile) == 3:
                             grapplertiles.add(Grappler(levelx, levely, tile[1], tile[2]))
                         else:
                             grapplertiles.add(Grappler(levelx, levely, tile[1]))
-                    if tile[0] == 19:
+                    elif tile[0] == 19:
                         circuittiles.add(Circuit(levelx, levely))
                         bgloaded = True
                         elevtiles.add(StickyElev(levelx, levely, tile[1]))
+                    elif tile[0] == 20:
+                        sensortiles.add(Transformer(levelx, levely, tile[1]))
+                    elif tile[0] == 21:
+                        sensortiles.add(Broadcaster(levelx, levely, tile[1]))
+                    elif tile[0] == 22:
+                        if len(tile) == 3:
+                            sensortiles.add(Picker(levelx, levely, tile[1], tile[2]))
+                        else:
+                            sensortiles.add(Picker(levelx, levely, tile[1]))
+                    elif tile[0] == 23:
+                        if len(tile) == 3:
+                            sensortiles.add(Tripwire(levelx, levely, tile[1], tile[2]))
+                        else:
+                            sensortiles.add(Tripwire(levelx, levely, tile[1]))
 
                 if not bgloaded:
                     spacetiles.add(Space(levelx, levely))
@@ -2498,14 +2662,15 @@ while run:
         if spawn is None:
             raise RuntimeError("No spawn found")
 
+        bgtiles.add(spacetiles, circuittiles)
         solidtiles.add(blocktiles, elevtiles, doortiles, rocktiles, turrettiles, lighttiles, pistontiles,
-                       pistonrodtiles, droppertiles, conveyortiles, conductortiles, grapplertiles, bullets)
+                       pistonrodtiles, droppertiles, conveyortiles, conductortiles, grapplertiles, sensortiles, bullets)
         collidetiles.add(solidtiles)
-        wireless.add(doortiles, droppertiles, grapplertiles)
+        wireless.add(doortiles, droppertiles, grapplertiles, [s for s in sensortiles if type(s) in (Transformer,)])
 
         tiles.add(spacetiles, blocktiles, spawn, lavatiles, esctiles, elevtiles, circuittiles, switchtiles, doortiles,
                   rocktiles, turrettiles, bullets, lighttiles, vortextiles, pistontiles, pistonrodtiles, droppertiles,
-                  droplets, conveyortiles, conductortiles, grapplertiles, hooktiles, hooktrails)
+                  droplets, conveyortiles, conductortiles, grapplertiles, hooktiles, hooktrails, sensortiles)
         projectiles.add(bullets)
 
         fallingtiles.add([s for s in tiles if s.weight < 1])
@@ -2520,6 +2685,8 @@ while run:
             Esc(-32, -32).populategroups()
             shadowsurf.fill(colors.DGRAY)
             Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
+            Light.polycache[0].update([(x * 32, y * 32) for x in range(33) for y in range(33)
+                                       if x in (0, 32) or y in (0, 32)])
             lighttiles.update()
             lightingtiles.update()
 
@@ -2535,6 +2702,8 @@ while run:
 
     # if stealth:
     #     Light.polycache = shca.tiletopoly([s for s in solidtiles if s not in lighttiles])
+    #     Light.polycache[0].update([(x * 32, y * 32) for x in range(33) for y in range(33)
+    #                                if x in (0, 32) or y in (0, 32)])
     if lavadeath := pygame.sprite.spritecollide(plat, lavatiles, False):
         plat.die("lava", lavadeath)
     if escapes := pygame.sprite.spritecollide(plat, esctiles, False):
@@ -2544,8 +2713,9 @@ while run:
                 if isinstance(escape, Diamond):
                     escape.rect.x, escape.rect.y = -32, -32
                     for tile in esctiles:
-                        if tile.__class__ == Esc and tile.rect.topleft == (-32, -32):
+                        if type(tile) == Esc and tile.rect.topleft == (-32, -32):
                             tile.rect.x, tile.rect.y = spawn.rect.x, spawn.rect.y
+                            spawn.rect.x, spawn.rect.y = -32, -32
 
         else:
             animations['cutscene'] = False
@@ -2559,7 +2729,7 @@ while run:
                 animations['animlive'] = True
             plat.escaped = True
     power.conductorcache.empty()
-    power.conductorcache.add([s for s in [*conductortiles, *sensortiles] if s.on])
+    power.conductorcache.add([s for s in [*conductortiles, *sensortiles, *grapplertiles] if s.on])
     if animations['cutscene']:
         animate()
 
@@ -2587,6 +2757,8 @@ while run:
     droppertiles.update()
     conveyortiles.update()
     hooktiles.update()
+    lavatiles.update()
+    sensortiles.update()
     projectiles.update()
     guards.update()
     plat.move()
