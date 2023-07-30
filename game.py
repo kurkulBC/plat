@@ -12,6 +12,7 @@ import timeit
 from assets.data import shadowcasting as shca
 from assets.data import tilegroups
 from math import dist, copysign
+from assets.data.shadowcasting import LightingManager
 
 # pygame.init() - init ~1.7s
 # this - init ~0.1s :)
@@ -1739,40 +1740,7 @@ class Lighting(TempObj):
         self.visiblepolycache: list[list[shca.Coord], list[shca.Line]] = []
 
     def update(self):
-        if not plat.alive:
-            return
-
-        # light sources on lvl5:
-        # (272, 48)
-        # (720, 48)
-        # (144, 336)
-        # (784, 528)
-        # (464, 560)
-        # (208, 816)
-        # (592, 816)
-        # (656, 816)
-        #if self.rect.center != (208, 816):
-            #return
-        #    pass
-
-        #print(pygame.time.get_ticks())
-
-        #shca.LightingSystem.level_data = currentlvl
-        #corners = shca.LightingSystem.get_unique_corners(solidtiles, shca.LightingSystem.static_tiles_mask)
-        #vcorners = shca.LightingSystem.get_visible_corners((self.hostrect.center, self.direction), corners, shca.LightingSystem.static_tiles_mask)
-        #poly = shca.LightingSystem.corners_to_poly(vcorners, self.rect.center)
-        #pygame.draw.polygon(shadowsurf, colors.BLACK, poly)
-        #print(vcorners)
-        #print(poly)
-        #pygame.draw.rect(shadowsurf, colors.DGRAY, self.hostrect)
-
-        #for corner in corners:
-            #pygame.draw.circle(shadowsurf, colors.GREEN, (corner[0], corner[1]), 10)
-        #    pass
-        #for corner in vcorners:
-            #pygame.draw.circle(shadowsurf, colors.GREEN, (corner[0][0], corner[0][1]), 10)
-        #    pass
-
+        pass
 
 class Vortex(Tile):
     def __init__(self, x, y, ident, image, startimage):
@@ -2457,7 +2425,7 @@ while run:
 
     if plat.escaped is True:
         plat.escaped = False
-        levelcount = 4
+        levelcount = 5
         if not animations['cutscene']:
             currentlvl = levels[levelcount]
             leveltext = font1.render(f"Level {levelcount + 1} : {leveldescs[levelcount]}", False, colors.WHITE)
@@ -2683,13 +2651,15 @@ while run:
             lighttiles.update()
             lightingtiles.update()
 
-            shca.LightingManager.light_sources = map(lambda tile: (tile.rect.center, tile.direction), lightingtiles)
-            shca.LightingManager.static_tiles = solidtiles
-            shca.LightingManager.level_data = currentlvl
-            shca.LightingManager.update_static_tiles()
+            LightingManager.light_sources = map(lambda tile: (tile.rect.center, tile.direction), lightingtiles)
+            LightingManager.static_tiles = solidtiles
+            LightingManager.level_data = currentlvl
+            LightingManager.update_static_tiles()
 
-            for poly in shca.LightingManager.static_polygons:
+            for poly in LightingManager.static_polygons:
                 pygame.draw.polygon(shadowsurf, colors.BLACK, poly)
+            for tile in lighttiles:
+                pygame.draw.rect(shadowsurf, colors.DGRAY, tile.rect)
 
         plat.die("respawn", "game")
 

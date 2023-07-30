@@ -95,6 +95,7 @@ class LightingManager:
 
             if grid_pos[0] < (map_size[0] - 1):     # x+1
                 if grid_pos[1] > 0:     # x+1, y-1
+                    print(str(map_size) + " " + str(grid_pos)) #31 23 does not exist on lvl7???
                     if (type(LightingManager.level_data[grid_pos[1] - 1][grid_pos[0] + 1]) is int)\
                             and (LightingManager.level_data[grid_pos[1] - 1][grid_pos[0] + 1] in tile_mask):
                         coverage |= LightingManager.Direction.TOPRIGHT
@@ -184,11 +185,7 @@ class LightingManager:
                 ang_sin: float
                 ang_sin = delta_norm[0] * fov_vec[1] + delta_norm[1] * (-1) * fov_vec[0]
                 # ...and if it is, send a ray to the corner
-
-                if(corner[0] == 800) and (corner[1] == 736):
-                    pass
-                hit = LightingManager.tiled_raycast(light_source[0], delta_norm, len(LightingManager.level_data), tile_mask)
-
+                hit = LightingManager.tiled_raycast(light_source[0], delta_norm, 40, tile_mask)
                 # checking if the ray has hit its target.
                 # if not, the hit point is useless and will only clutter the list
                 delta_hit = (hit[0] - corner[0], hit[1] - corner[1])
